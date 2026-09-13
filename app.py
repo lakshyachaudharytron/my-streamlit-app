@@ -85,12 +85,9 @@ years_to_sell = st.number_input(
 
 st.subheader("Scenario Inputs — Bullish / Normal / Bearish")
 
-input_mode = st.radio(
-    "How do you want to set each scenario's sale value?",
-    ["Absolute Sale Value (₹)", "Annual Appreciation Rate (%)"],
-)
+use_appreciation_rate = st.toggle("Use Annual Appreciation Rate instead of Absolute Sale Value")
 
-if input_mode == "Absolute Sale Value (₹)":
+if not use_appreciation_rate:
     bullish_value = currency_text_input("Bullish — Expected Sale Value (₹)", "bullish_value", 18000000.0)
     normal_value = currency_text_input("Normal — Expected Sale Value (₹)", "normal_value", 15000000.0)
     bearish_value = currency_text_input("Bearish — Expected Sale Value (₹)", "bearish_value", 12000000.0)
@@ -104,7 +101,7 @@ if input_mode == "Absolute Sale Value (₹)":
     else:
         implied_rate = 0.0
 
-else:  # Annual Appreciation Rate mode — one slider per scenario
+else:
     bullish_rate = st.slider("Bullish Annual Appreciation Rate (%)", 0.0, 30.0, 15.0, 0.5)
     normal_rate = st.slider("Normal Annual Appreciation Rate (%)", 0.0, 30.0, 10.0, 0.5)
     bearish_rate = st.slider("Bearish Annual Appreciation Rate (%)", 0.0, 30.0, 5.0, 0.5)
@@ -116,6 +113,8 @@ else:  # Annual Appreciation Rate mode — one slider per scenario
     sale_value = initial_investment * (1 + implied_rate) ** years_to_sell
 
 # ---------- Cash Flow Construction ----------
+# Payments spread evenly over the years until sale; final year nets the last
+# installment against the sale proceeds (sale happens same year as last payment).
 annual_payment = total_paid / years_to_sell
 cash_flows = [-annual_payment for _ in range(years_to_sell - 1)]
 cash_flows.append(sale_value - annual_payment)
@@ -126,7 +125,7 @@ irr = calculate_irr(cash_flows)
 st.subheader("Results")
 st.write(f"**Annual Payment (spread evenly):** ₹{format_indian(annual_payment)}")
 st.write(f"**Sale Value ({scenario} scenario, Year {years_to_sell}):** ₹{format_indian(sale_value)}")
-st.write(f"**Annual Appreciation Rate ({'implied' if input_mode.startswith('Absolute') else 'input'}):** {implied_rate * 100:.2f}%")
+st.write(f"**Annual Appreciation Rate ({'implied' if not use_appreciation_rate else 'input'}):** {implied_rate * 100:.2f}%")
 
 if irr is not None:
     st.metric("IRR", f"{irr * 100:.2f}%")
@@ -137,3 +136,11 @@ with st.expander("Cash Flow Breakdown"):
     for i, cf in enumerate(cash_flows):
         label = "Payment" if i < years_to_sell - 1 else "Sale Proceeds − Final Payment (net)"
         st.write(f"Year {i}: {label} — ₹{format_indian(cf)}")
+
+# ---------- Optional year-by-year appreciation table ----------
+show_yearly = st.checkbox("Show year-by-year appreciation")
+if show_yearly:
+    st.subheader("Year-by-Year Property Value")
+    for year in range(years_to_sell + 1):
+        year_value = initial_investment * (1 + implied_rate) ** year
+        st.write(f"Year {year}: ₹{format_indian(year_value)}")
