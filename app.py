@@ -11,7 +11,7 @@ def calculate_irr(cash_flows, low=-0.99, high=10.0, tol=1e-6, max_iter=1000):
     f_low = npv(low, cash_flows)
     f_high = npv(high, cash_flows)
     if f_low * f_high > 0:
-        return None  # no sign change -> IRR not solvable in this range
+        return None
     for _ in range(max_iter):
         mid = (low + high) / 2
         f_mid = npv(mid, cash_flows)
@@ -48,12 +48,32 @@ def format_indian(number):
     result = f"{formatted}.{decimal_part}"
     return f"-{result}" if is_negative else result
 
+def parse_indian(text):
+    raw = text.replace(",", "").replace("₹", "").strip()
+    if raw == "":
+        return 0.0
+    try:
+        return float(raw)
+    except ValueError:
+        return 0.0
+
+# ---------- Reusable comma-formatted currency text input ----------
+def currency_text_input(label, key, default_value):
+    if key not in st.session_state:
+        st.session_state[key] = format_indian(default_value)
+
+    def _reformat():
+        value = parse_indian(st.session_state[key])
+        st.session_state[key] = format_indian(value)
+
+    st.text_input(label, key=key, on_change=_reformat)
+    return parse_indian(st.session_state[key])
+
 # ---------- Inputs ----------
 st.subheader("Investment Details")
 
-initial_investment = st.number_input(
-    "Initial Investment (Total Property Value, ₹)",
-    min_value=0.0, value=10000000.0, step=100000.0, format="%.2f"
+initial_investment = currency_text_input(
+    "Initial Investment (Total Property Value, ₹)", "initial_investment", 10000000.0
 )
 
 pct_paid = st.slider("% Paid So Far / Committed (%)", min_value=1, max_value=100, value=50)
@@ -64,38 +84,35 @@ years_to_sell = st.number_input(
     "Total Years Until Investment is Sold", min_value=1, max_value=30, value=5, step=1
 )
 
-st.subheader("Appreciation Scenarios (Annual %)")
-col1, col2, col3 = st.columns(3)
-with col1:
-    bullish_rate = st.number_input("Bullish (%)", value=15.0, step=0.5)
-with col2:
-    normal_rate = st.number_input("Normal (%)", value=10.0, step=0.5)
-with col3:
-    bearish_rate = st.number_input("Bearish (%)", value=5.0, step=0.5)
+st.subheader("Scenario Sale Values (absolute ₹, not %)")
+bullish_value = currency_text_input("Bullish — Expected Sale Value (₹)", "bullish_value", 18000000.0)
+normal_value = currency_text_input("Normal — Expected Sale Value (₹)", "normal_value", 15000000.0)
+bearish_value = currency_text_input("Bearish — Expected Sale Value (₹)", "bearish_value", 12000000.0)
 
 scenario = st.selectbox("Select Scenario to Calculate", ["Bullish", "Normal", "Bearish"])
-rate_map = {"Bullish": bullish_rate, "Normal": normal_rate, "Bearish": bearish_rate}
-selected_rate = rate_map[scenario] / 100
+value_map = {"Bullish": bullish_value, "Normal": normal_value, "Bearish": bearish_value}
+sale_value = value_map[scenario]
+
+# Implied annual appreciation rate, back-solved from the absolute sale value you entered
+if initial_investment > 0 and years_to_sell > 0:
+    implied_rate = (sale_value / initial_investment) ** (1 / years_to_sell) - 1
+else:
+    implied_rate = 0.0
 
 # ---------- Cash Flow Construction ----------
-# Payments are spread evenly over the years until sale (year 0 to years_to_sell - 1).
-# The final year's cash flow nets the last installment against the sale proceeds,
-# since the sale happens in the same year as the last payment.
+# Payments spread evenly over the years until sale; final year nets the last
+# installment against the sale proceeds (sale happens same year as last payment).
 annual_payment = total_paid / years_to_sell
-
-# Property value appreciates on the FULL initial investment (not just amount paid),
-# since ownership rights typically track full unit value once booked
-sale_value = initial_investment * (1 + selected_rate) ** years_to_sell
-
 cash_flows = [-annual_payment for _ in range(years_to_sell - 1)]
-cash_flows.append(sale_value - annual_payment)  # final year: sale proceeds minus last installment
+cash_flows.append(sale_value - annual_payment)
 
 irr = calculate_irr(cash_flows)
 
 # ---------- Results ----------
 st.subheader("Results")
 st.write(f"**Annual Payment (spread evenly):** ₹{format_indian(annual_payment)}")
-st.write(f"**Projected Sale Value ({scenario} scenario, Year {years_to_sell}):** ₹{format_indian(sale_value)}")
+st.write(f"**Sale Value ({scenario} scenario, Year {years_to_sell}):** ₹{format_indian(sale_value)}")
+st.write(f"**Implied Annual Appreciation Rate:** {implied_rate * 100:.2f}%")
 
 if irr is not None:
     st.metric("IRR", f"{irr * 100:.2f}%")
@@ -104,8 +121,13 @@ else:
 
 with st.expander("Cash Flow Breakdown"):
     for i, cf in enumerate(cash_flows):
-        if i < years_to_sell - 1:
-            label = "Payment"
-        else:
-            label = "Sale Proceeds − Final Payment (net)"
+        label = "Payment" if i < years_to_sell - 1 else "Sale Proceeds − Final Payment (net)"
         st.write(f"Year {i}: {label} — ₹{format_indian(cf)}")
+
+# ---------- Optional year-by-year appreciation table ----------
+show_yearly = st.checkbox("Show year-by-year appreciation (using implied rate)")
+if show_yearly:
+    st.subheader("Year-by-Year Property Value")
+    for year in range(years_to_sell + 1):
+        year_value = initial_investment * (1 + implied_rate) ** year
+        st.write(f"Year {year}: ₹{format_indian(year_value)}")
