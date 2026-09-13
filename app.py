@@ -84,20 +84,41 @@ years_to_sell = st.number_input(
     "Total Years Until Investment is Sold", min_value=1, max_value=30, value=5, step=1
 )
 
-st.subheader("Scenario Sale Values (absolute ₹, not %)")
-bullish_value = currency_text_input("Bullish — Expected Sale Value (₹)", "bullish_value", 18000000.0)
-normal_value = currency_text_input("Normal — Expected Sale Value (₹)", "normal_value", 15000000.0)
-bearish_value = currency_text_input("Bearish — Expected Sale Value (₹)", "bearish_value", 12000000.0)
+st.subheader("Scenario Inputs")
 
-scenario = st.selectbox("Select Scenario to Calculate", ["Bullish", "Normal", "Bearish"])
-value_map = {"Bullish": bullish_value, "Normal": normal_value, "Bearish": bearish_value}
-sale_value = value_map[scenario]
+input_mode = st.radio(
+    "How do you want to define Bullish / Normal / Bearish?",
+    ["Absolute Sale Value (₹)", "Annual Appreciation Rate (%)"],
+)
 
-# Implied annual appreciation rate, back-solved from the absolute sale value you entered
-if initial_investment > 0 and years_to_sell > 0:
-    implied_rate = (sale_value / initial_investment) ** (1 / years_to_sell) - 1
-else:
-    implied_rate = 0.0
+if input_mode == "Absolute Sale Value (₹)":
+    bullish_value = currency_text_input("Bullish — Expected Sale Value (₹)", "bullish_value", 18000000.0)
+    normal_value = currency_text_input("Normal — Expected Sale Value (₹)", "normal_value", 15000000.0)
+    bearish_value = currency_text_input("Bearish — Expected Sale Value (₹)", "bearish_value", 12000000.0)
+
+    scenario = st.selectbox("Select Scenario to Calculate", ["Bullish", "Normal", "Bearish"])
+    value_map = {"Bullish": bullish_value, "Normal": normal_value, "Bearish": bearish_value}
+    sale_value = value_map[scenario]
+
+    if initial_investment > 0 and years_to_sell > 0:
+        implied_rate = (sale_value / initial_investment) ** (1 / years_to_sell) - 1
+    else:
+        implied_rate = 0.0
+
+else:  # Annual Appreciation Rate mode
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        bullish_rate = st.number_input("Bullish (%)", value=15.0, step=0.5)
+    with col2:
+        normal_rate = st.number_input("Normal (%)", value=10.0, step=0.5)
+    with col3:
+        bearish_rate = st.number_input("Bearish (%)", value=5.0, step=0.5)
+
+    scenario = st.selectbox("Select Scenario to Calculate", ["Bullish", "Normal", "Bearish"])
+    rate_map = {"Bullish": bullish_rate, "Normal": normal_rate, "Bearish": bearish_rate}
+    implied_rate = rate_map[scenario] / 100
+
+    sale_value = initial_investment * (1 + implied_rate) ** years_to_sell
 
 # ---------- Cash Flow Construction ----------
 # Payments spread evenly over the years until sale; final year nets the last
@@ -112,7 +133,7 @@ irr = calculate_irr(cash_flows)
 st.subheader("Results")
 st.write(f"**Annual Payment (spread evenly):** ₹{format_indian(annual_payment)}")
 st.write(f"**Sale Value ({scenario} scenario, Year {years_to_sell}):** ₹{format_indian(sale_value)}")
-st.write(f"**Implied Annual Appreciation Rate:** {implied_rate * 100:.2f}%")
+st.write(f"**Annual Appreciation Rate ({'implied' if input_mode.startswith('Absolute') else 'input'}):** {implied_rate * 100:.2f}%")
 
 if irr is not None:
     st.metric("IRR", f"{irr * 100:.2f}%")
@@ -125,7 +146,7 @@ with st.expander("Cash Flow Breakdown"):
         st.write(f"Year {i}: {label} — ₹{format_indian(cf)}")
 
 # ---------- Optional year-by-year appreciation table ----------
-show_yearly = st.checkbox("Show year-by-year appreciation (using implied rate)")
+show_yearly = st.checkbox("Show year-by-year appreciation")
 if show_yearly:
     st.subheader("Year-by-Year Property Value")
     for year in range(years_to_sell + 1):
