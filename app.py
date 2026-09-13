@@ -55,14 +55,17 @@ rate_map = {"Bullish": bullish_rate, "Normal": normal_rate, "Bearish": bearish_r
 selected_rate = rate_map[scenario] / 100
 
 # ---------- Cash Flow Construction ----------
-# Payments are spread evenly over the years until sale (year 0 to years_to_sell - 1)
+# Payments are spread evenly over the years until sale (year 0 to years_to_sell - 1).
+# The final year's cash flow nets the last installment against the sale proceeds,
+# since the sale happens in the same year as the last payment.
 annual_payment = total_paid / years_to_sell
-cash_flows = [-annual_payment for _ in range(years_to_sell)]
 
 # Property value appreciates on the FULL initial investment (not just amount paid),
 # since ownership rights typically track full unit value once booked
 sale_value = initial_investment * (1 + selected_rate) ** years_to_sell
-cash_flows.append(sale_value)
+
+cash_flows = [-annual_payment for _ in range(years_to_sell - 1)]
+cash_flows.append(sale_value - annual_payment)  # final year: sale proceeds minus last installment
 
 irr = calculate_irr(cash_flows)
 
@@ -78,5 +81,8 @@ else:
 
 with st.expander("Cash Flow Breakdown"):
     for i, cf in enumerate(cash_flows):
-        label = "Payment" if cf < 0 else "Sale Proceeds"
+        if i < years_to_sell - 1:
+            label = "Payment"
+        else:
+            label = "Sale Proceeds − Final Payment (net)"
         st.write(f"Year {i}: {label} — ₹{cf:,.2f}")
