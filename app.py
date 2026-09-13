@@ -106,13 +106,10 @@ if input_mode == "Absolute Sale Value (₹)":
         implied_rate = 0.0
 
 else:  # Annual Appreciation Rate mode
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        bullish_rate = st.number_input("Bullish (%)", value=15.0, step=0.5)
-    with col2:
-        normal_rate = st.number_input("Normal (%)", value=10.0, step=0.5)
-    with col3:
-        bearish_rate = st.number_input("Bearish (%)", value=5.0, step=0.5)
+    st.write("Set Annual Appreciation Rate (%) for each scenario:")
+    bullish_rate = st.slider("Bullish Annual Appreciation Rate (%)", min_value=0.0, max_value=30.0, value=15.0, step=0.5)
+    normal_rate = st.slider("Normal Annual Appreciation Rate (%)", min_value=0.0, max_value=30.0, value=10.0, step=0.5)
+    bearish_rate = st.slider("Bearish Annual Appreciation Rate (%)", min_value=0.0, max_value=30.0, value=5.0, step=0.5)
 
     scenario = st.selectbox("Select Scenario to Calculate", ["Bullish", "Normal", "Bearish"])
     rate_map = {"Bullish": bullish_rate, "Normal": normal_rate, "Bearish": bearish_rate}
