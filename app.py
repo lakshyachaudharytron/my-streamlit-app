@@ -1,6 +1,54 @@
 import streamlit as st
 
 st.set_page_config(page_title="Real Estate IRR Calculator", layout="centered")
+
+# ---------- Teal theme CSS ----------
+st.markdown("""
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap');
+
+html, body, [class*="css"]  {
+    font-family: 'Inter', sans-serif;
+}
+h1 {
+    color: #14B8A6;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    border-bottom: 2px solid #1E293B;
+    padding-bottom: 0.6rem;
+    margin-bottom: 1.5rem;
+}
+h3 {
+    color: #FFFFFF;
+    font-weight: 600;
+    margin-top: 2rem;
+}
+[data-testid="stMarkdownContainer"] p strong {
+    font-family: 'JetBrains Mono', monospace;
+    color: #14B8A6;
+}
+[data-testid="stMetric"] {
+    background-color: #1E293B;
+    border: 1px solid #0F6E68;
+    border-left: 4px solid #14B8A6;
+    border-radius: 6px;
+    padding: 1rem 1.25rem;
+}
+[data-testid="stMetricValue"] {
+    font-family: 'JetBrains Mono', monospace;
+    color: #14B8A6;
+    font-weight: 600;
+}
+[data-testid="stExpander"] {
+    border: 1px solid #1E293B;
+    border-radius: 6px;
+}
+[data-testid="stCaptionContainer"] {
+    color: #94A3B8;
+}
+</style>
+""", unsafe_allow_html=True)
+
 st.title("Under-Construction Real Estate — IRR Calculator")
 
 # ---------- IRR helper (pure Python, no extra dependencies) ----------
@@ -79,11 +127,33 @@ initial_investment = currency_text_input(
 
 pct_paid = st.slider("% Paid So Far / Committed (%)", min_value=1, max_value=100, value=50)
 total_paid = initial_investment * (pct_paid / 100)
-st.write(f"**Total Paid:** ₹{format_indian(total_paid)}")
+st.write(f"**Total Paid (based on % Paid):** ₹{format_indian(total_paid)}")
 
 years_to_sell = st.number_input(
     "Total Years Until Investment is Sold", min_value=1, max_value=30, value=5, step=1
 )
+
+# ============================================================
+# INSTALLMENT SCHEDULE — even split (default) vs custom per-year
+# ============================================================
+st.subheader("Installment Schedule")
+
+use_custom_installments = st.toggle("Enter custom installment amount for each year (instead of splitting evenly)")
+
+if use_custom_installments:
+    st.caption(f"Enter the installment for each of the {years_to_sell} year(s):")
+    default_even_split = total_paid / years_to_sell
+    installments = []
+    for year in range(int(years_to_sell)):
+        amount = currency_text_input(
+            f"Year {year} Installment (₹)", f"installment_year_{year}", default_even_split
+        )
+        installments.append(amount)
+    total_paid_actual = sum(installments)
+    st.write(f"**Total Paid (sum of custom installments):** ₹{format_indian(total_paid_actual)}")
+else:
+    installments = [total_paid / years_to_sell for _ in range(int(years_to_sell))]
+    total_paid_actual = total_paid
 
 # ============================================================
 # ANNUAL APPRECIATION — independent of scenarios, compounds every year
@@ -104,7 +174,6 @@ st.write(f"**Appreciated Value at Year {years_to_sell} (before scenario premium)
 
 # ============================================================
 # SCENARIO PREMIUMS — Bullish / Normal / Bearish
-# These are flat ₹ amounts ADDED to the appreciated value above
 # ============================================================
 st.subheader("Scenario Premiums — Bullish / Normal / Bearish")
 st.caption("Each scenario is a flat ₹ premium added on top of the appreciated value above.")
@@ -122,14 +191,11 @@ sale_value = appreciated_value + selected_premium
 # ============================================================
 # CASH FLOW CONSTRUCTION
 # ============================================================
-# Installments are flat and spread evenly across years 0 to years_to_sell - 1
-annual_payment = total_paid / years_to_sell
-
 # Final-year net cash flow = sale value MINUS the last installment
 # (sale happens the same year as the final payment, so they net together)
-final_year_cashflow = sale_value - annual_payment
+final_year_cashflow = sale_value - installments[-1]
 
-cash_flows = [-annual_payment for _ in range(years_to_sell - 1)]
+cash_flows = [-installments[i] for i in range(int(years_to_sell) - 1)]
 cash_flows.append(final_year_cashflow)
 
 irr = calculate_irr(cash_flows)
@@ -138,7 +204,6 @@ irr = calculate_irr(cash_flows)
 # RESULTS
 # ============================================================
 st.subheader("Results")
-st.write(f"**Annual Installment (flat, every year):** ₹{format_indian(annual_payment)}")
 st.write(f"**Appreciated Value (Year {years_to_sell}, before premium):** ₹{format_indian(appreciated_value)}")
 st.write(f"**{scenario} Premium:** ₹{format_indian(selected_premium)}")
 st.write(f"**Final Sale Value (Appreciated Value + Premium):** ₹{format_indian(sale_value)}")
@@ -151,7 +216,7 @@ else:
 
 with st.expander("Cash Flow Breakdown (Year by Year)"):
     for i, cf in enumerate(cash_flows):
-        label = "Installment" if i < years_to_sell - 1 else "Sale Value − Last Installment (net)"
+        label = "Installment" if i < int(years_to_sell) - 1 else "Sale Value − Last Installment (net)"
         st.write(f"Year {i}: {label} — ₹{format_indian(cf)}")
 
 # ============================================================
@@ -161,6 +226,6 @@ if use_appreciation_rate:
     show_yearly = st.checkbox("Show year-by-year appreciation (before premium)")
     if show_yearly:
         st.subheader("Year-by-Year Appreciated Value")
-        for year in range(years_to_sell + 1):
+        for year in range(int(years_to_sell) + 1):
             year_value = initial_investment * (1 + rate) ** year
             st.write(f"Year {year}: ₹{format_indian(year_value)}")
