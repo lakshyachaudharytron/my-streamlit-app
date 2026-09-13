@@ -68,7 +68,9 @@ def currency_text_input(label, key, default_value):
     st.text_input(label, key=key, on_change=_reformat)
     return parse_indian(st.session_state[key])
 
-# ---------- Inputs ----------
+# ============================================================
+# INPUTS
+# ============================================================
 st.subheader("Investment Details")
 
 initial_investment = currency_text_input(
@@ -83,64 +85,85 @@ years_to_sell = st.number_input(
     "Total Years Until Investment is Sold", min_value=1, max_value=30, value=5, step=1
 )
 
+# ============================================================
+# SCENARIO INPUTS — Bullish / Normal / Bearish
+# ============================================================
 st.subheader("Scenario Inputs — Bullish / Normal / Bearish")
 
-use_appreciation_rate = st.toggle("Use Annual Appreciation Rate instead of Absolute Sale Value")
+use_appreciation_rate = st.toggle(
+    "Grow investment value annually using an Appreciation Rate (instead of a flat absolute value)"
+)
 
-if not use_appreciation_rate:
-    bullish_value = currency_text_input("Bullish — Expected Sale Value (₹)", "bullish_value", 18000000.0)
-    normal_value = currency_text_input("Normal — Expected Sale Value (₹)", "normal_value", 15000000.0)
-    bearish_value = currency_text_input("Bearish — Expected Sale Value (₹)", "bearish_value", 12000000.0)
-
-    scenario = st.selectbox("Select Scenario to Calculate", ["Bullish", "Normal", "Bearish"])
-    value_map = {"Bullish": bullish_value, "Normal": normal_value, "Bearish": bearish_value}
-    sale_value = value_map[scenario]
-
-    if initial_investment > 0 and years_to_sell > 0:
-        implied_rate = (sale_value / initial_investment) ** (1 / years_to_sell) - 1
-    else:
-        implied_rate = 0.0
-
-else:
+if use_appreciation_rate:
+    # Toggle ON: value compounds every year at the chosen rate, all the way to the final year
     bullish_rate = st.slider("Bullish Annual Appreciation Rate (%)", 0.0, 30.0, 15.0, 0.5)
     normal_rate = st.slider("Normal Annual Appreciation Rate (%)", 0.0, 30.0, 10.0, 0.5)
     bearish_rate = st.slider("Bearish Annual Appreciation Rate (%)", 0.0, 30.0, 5.0, 0.5)
 
     scenario = st.selectbox("Select Scenario to Calculate", ["Bullish", "Normal", "Bearish"])
     rate_map = {"Bullish": bullish_rate, "Normal": normal_rate, "Bearish": bearish_rate}
-    implied_rate = rate_map[scenario] / 100
+    annual_rate = rate_map[scenario] / 100
 
-    sale_value = initial_investment * (1 + implied_rate) ** years_to_sell
+    # Final-year appreciated value = initial investment compounded every year up to years_to_sell
+    appreciated_value = initial_investment * (1 + annual_rate) ** years_to_sell
 
-# ---------- Cash Flow Construction ----------
-# Payments spread evenly over the years until sale; final year nets the last
-# installment against the sale proceeds (sale happens same year as last payment).
+else:
+    # Toggle OFF: you type the final sale value directly, no compounding math
+    bullish_value = currency_text_input("Bullish — Expected Sale Value (₹)", "bullish_value", 18000000.0)
+    normal_value = currency_text_input("Normal — Expected Sale Value (₹)", "normal_value", 15000000.0)
+    bearish_value = currency_text_input("Bearish — Expected Sale Value (₹)", "bearish_value", 12000000.0)
+
+    scenario = st.selectbox("Select Scenario to Calculate", ["Bullish", "Normal", "Bearish"])
+    value_map = {"Bullish": bullish_value, "Normal": normal_value, "Bearish": bearish_value}
+    appreciated_value = value_map[scenario]
+
+    # Back-calculate the implied annual rate just for display purposes
+    if initial_investment > 0 and years_to_sell > 0:
+        annual_rate = (appreciated_value / initial_investment) ** (1 / years_to_sell) - 1
+    else:
+        annual_rate = 0.0
+
+# ============================================================
+# CASH FLOW CONSTRUCTION
+# ============================================================
+# Installments are flat and spread evenly across years 0 to years_to_sell - 1
 annual_payment = total_paid / years_to_sell
+
+# Final-year sellable value = appreciated/case value MINUS the last installment
+# (sale happens the same year as the final payment, so they net together)
+final_year_cashflow = appreciated_value - annual_payment
+
 cash_flows = [-annual_payment for _ in range(years_to_sell - 1)]
-cash_flows.append(sale_value - annual_payment)
+cash_flows.append(final_year_cashflow)
 
 irr = calculate_irr(cash_flows)
 
-# ---------- Results ----------
+# ============================================================
+# RESULTS
+# ============================================================
 st.subheader("Results")
-st.write(f"**Annual Payment (spread evenly):** ₹{format_indian(annual_payment)}")
-st.write(f"**Sale Value ({scenario} scenario, Year {years_to_sell}):** ₹{format_indian(sale_value)}")
-st.write(f"**Annual Appreciation Rate ({'implied' if not use_appreciation_rate else 'input'}):** {implied_rate * 100:.2f}%")
+st.write(f"**Annual Installment (flat, every year):** ₹{format_indian(annual_payment)}")
+st.write(f"**Appreciated / Case Value at Year {years_to_sell} ({scenario}):** ₹{format_indian(appreciated_value)}")
+st.write(f"**Final Year Net Cash Flow (Sale Value − Last Installment):** ₹{format_indian(final_year_cashflow)}")
+st.write(f"**Annual Appreciation Rate ({'input' if use_appreciation_rate else 'implied'}):** {annual_rate * 100:.2f}%")
 
 if irr is not None:
     st.metric("IRR", f"{irr * 100:.2f}%")
 else:
     st.error("IRR could not be calculated for these inputs (try adjusting values).")
 
-with st.expander("Cash Flow Breakdown"):
+with st.expander("Cash Flow Breakdown (Year by Year)"):
     for i, cf in enumerate(cash_flows):
-        label = "Payment" if i < years_to_sell - 1 else "Sale Proceeds − Final Payment (net)"
+        label = "Installment" if i < years_to_sell - 1 else "Sale Value − Last Installment (net)"
         st.write(f"Year {i}: {label} — ₹{format_indian(cf)}")
 
-# ---------- Optional year-by-year appreciation table ----------
-show_yearly = st.checkbox("Show year-by-year appreciation")
-if show_yearly:
-    st.subheader("Year-by-Year Property Value")
-    for year in range(years_to_sell + 1):
-        year_value = initial_investment * (1 + implied_rate) ** year
-        st.write(f"Year {year}: ₹{format_indian(year_value)}")
+# ============================================================
+# OPTIONAL: Year-by-year growth of investment value (toggle ON only)
+# ============================================================
+if use_appreciation_rate:
+    show_yearly = st.checkbox("Show year-by-year appreciation of the investment value")
+    if show_yearly:
+        st.subheader("Year-by-Year Investment Value")
+        for year in range(years_to_sell + 1):
+            year_value = initial_investment * (1 + annual_rate) ** year
+            st.write(f"Year {year}: ₹{format_indian(year_value)}")
