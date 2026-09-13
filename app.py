@@ -25,6 +25,29 @@ def calculate_irr(cash_flows, low=-0.99, high=10.0, tol=1e-6, max_iter=1000):
             f_low = f_mid
     return mid
 
+# ---------- Indian numbering system formatter (lakhs/crores) ----------
+def format_indian(number):
+    is_negative = number < 0
+    number = abs(number)
+    s = f"{number:.2f}"
+    integer_part, decimal_part = s.split(".")
+
+    if len(integer_part) <= 3:
+        formatted = integer_part
+    else:
+        last_three = integer_part[-3:]
+        rest = integer_part[:-3]
+        parts = []
+        while len(rest) > 2:
+            parts.insert(0, rest[-2:])
+            rest = rest[:-2]
+        if rest:
+            parts.insert(0, rest)
+        formatted = ",".join(parts) + "," + last_three
+
+    result = f"{formatted}.{decimal_part}"
+    return f"-{result}" if is_negative else result
+
 # ---------- Inputs ----------
 st.subheader("Investment Details")
 
@@ -35,7 +58,7 @@ initial_investment = st.number_input(
 
 pct_paid = st.slider("% Paid So Far / Committed (%)", min_value=1, max_value=100, value=50)
 total_paid = initial_investment * (pct_paid / 100)
-st.write(f"**Total Paid:** ₹{total_paid:,.2f}")
+st.write(f"**Total Paid:** ₹{format_indian(total_paid)}")
 
 years_to_sell = st.number_input(
     "Total Years Until Investment is Sold", min_value=1, max_value=30, value=5, step=1
@@ -71,8 +94,8 @@ irr = calculate_irr(cash_flows)
 
 # ---------- Results ----------
 st.subheader("Results")
-st.write(f"**Annual Payment (spread evenly):** ₹{annual_payment:,.2f}")
-st.write(f"**Projected Sale Value ({scenario} scenario, Year {years_to_sell}):** ₹{sale_value:,.2f}")
+st.write(f"**Annual Payment (spread evenly):** ₹{format_indian(annual_payment)}")
+st.write(f"**Projected Sale Value ({scenario} scenario, Year {years_to_sell}):** ₹{format_indian(sale_value)}")
 
 if irr is not None:
     st.metric("IRR", f"{irr * 100:.2f}%")
@@ -85,4 +108,4 @@ with st.expander("Cash Flow Breakdown"):
             label = "Payment"
         else:
             label = "Sale Proceeds − Final Payment (net)"
-        st.write(f"Year {i}: {label} — ₹{cf:,.2f}")
+        st.write(f"Year {i}: {label} — ₹{format_indian(cf)}")
