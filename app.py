@@ -156,6 +156,19 @@ else:
     total_paid_actual = total_paid
 
 # ============================================================
+# RENTAL INCOME — optional, applied every year up to and including sale year
+# ============================================================
+st.subheader("Rental Income")
+
+use_rental_income = st.toggle("Include annual rental income in the cash flow")
+
+if use_rental_income:
+    annual_rent = currency_text_input("Annual Rent Received (₹)", "annual_rent", 300000.0)
+    st.caption(f"This rent will be added as income for every year, including Year {years_to_sell} (the sale year).")
+else:
+    annual_rent = 0.0
+
+# ============================================================
 # ANNUAL APPRECIATION — independent of scenarios, compounds every year
 # ============================================================
 st.subheader("Annual Appreciation of Investment Value")
@@ -191,11 +204,10 @@ sale_value = appreciated_value + selected_premium
 # ============================================================
 # CASH FLOW CONSTRUCTION
 # ============================================================
-# Final-year net cash flow = sale value MINUS the last installment
-# (sale happens the same year as the final payment, so they net together)
-final_year_cashflow = sale_value - installments[-1]
-
-cash_flows = [-installments[i] for i in range(int(years_to_sell) - 1)]
+# Each year: -installment + rent (rent is 0 if toggle is off)
+# Final year additionally nets the sale value in
+cash_flows = [-installments[i] + annual_rent for i in range(int(years_to_sell) - 1)]
+final_year_cashflow = (sale_value - installments[-1]) + annual_rent
 cash_flows.append(final_year_cashflow)
 
 irr = calculate_irr(cash_flows)
@@ -207,7 +219,9 @@ st.subheader("Results")
 st.write(f"**Appreciated Value (Year {years_to_sell}, before premium):** ₹{format_indian(appreciated_value)}")
 st.write(f"**{scenario} Premium:** ₹{format_indian(selected_premium)}")
 st.write(f"**Final Sale Value (Appreciated Value + Premium):** ₹{format_indian(sale_value)}")
-st.write(f"**Final Year Net Cash Flow (Sale Value − Last Installment):** ₹{format_indian(final_year_cashflow)}")
+if use_rental_income:
+    st.write(f"**Annual Rent (included every year):** ₹{format_indian(annual_rent)}")
+st.write(f"**Final Year Net Cash Flow (Sale − Last Installment + Rent):** ₹{format_indian(final_year_cashflow)}")
 
 if irr is not None:
     st.metric("IRR", f"{irr * 100:.2f}%")
@@ -216,7 +230,7 @@ else:
 
 with st.expander("Cash Flow Breakdown (Year by Year)"):
     for i, cf in enumerate(cash_flows):
-        label = "Installment" if i < int(years_to_sell) - 1 else "Sale Value − Last Installment (net)"
+        label = "Installment + Rent" if i < int(years_to_sell) - 1 else "Sale − Last Installment + Rent (net)"
         st.write(f"Year {i}: {label} — ₹{format_indian(cf)}")
 
 # ============================================================
