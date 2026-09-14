@@ -169,6 +169,19 @@ else:
     annual_rent = 0.0
 
 # ============================================================
+# ROI CALCULATION
+# ============================================================
+# Total invested = sum of all installments actually paid
+total_invested = sum(installments)
+
+# Total returns = final sale value + all rent collected across every year
+total_rent_collected = annual_rent * int(years_to_sell)
+total_returns = sale_value + total_rent_collected
+
+net_profit = total_returns - total_invested
+roi = (net_profit / total_invested) * 100 if total_invested > 0 else 0.0
+
+# ============================================================
 # ANNUAL APPRECIATION — independent of scenarios, compounds every year
 # ============================================================
 st.subheader("Annual Appreciation of Investment Value")
