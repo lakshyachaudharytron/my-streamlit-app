@@ -169,19 +169,6 @@ else:
     annual_rent = 0.0
 
 # ============================================================
-# ROI CALCULATION
-# ============================================================
-# Total invested = sum of all installments actually paid
-total_invested = sum(installments)
-
-# Total returns = final sale value + all rent collected across every year
-total_rent_collected = annual_rent * int(years_to_sell)
-total_returns = sale_value + total_rent_collected
-
-net_profit = total_returns - total_invested
-roi = (net_profit / total_invested) * 100 if total_invested > 0 else 0.0
-
-# ============================================================
 # ANNUAL APPRECIATION — independent of scenarios, compounds every year
 # ============================================================
 st.subheader("Annual Appreciation of Investment Value")
@@ -226,6 +213,15 @@ cash_flows.append(final_year_cashflow)
 irr = calculate_irr(cash_flows)
 
 # ============================================================
+# ROI CALCULATION
+# ============================================================
+total_invested = sum(installments)
+total_rent_collected = annual_rent * int(years_to_sell)
+total_returns = sale_value + total_rent_collected
+net_profit = total_returns - total_invested
+roi = (net_profit / total_invested) * 100 if total_invested > 0 else 0.0
+
+# ============================================================
 # RESULTS
 # ============================================================
 st.subheader("Results")
@@ -234,12 +230,19 @@ st.write(f"**{scenario} Premium:** ₹{format_indian(selected_premium)}")
 st.write(f"**Final Sale Value (Appreciated Value + Premium):** ₹{format_indian(sale_value)}")
 if use_rental_income:
     st.write(f"**Annual Rent (included every year):** ₹{format_indian(annual_rent)}")
-st.write(f"**Final Year Net Cash Flow (Sale − Last Installment + Rent):** ₹{format_indian(final_year_cashflow)}")
+    st.write(f"**Total Rent Collected (over {years_to_sell} years):** ₹{format_indian(total_rent_collected)}")
+st.write(f"**Total Invested:** ₹{format_indian(total_invested)}")
+st.write(f"**Total Returns (Sale + Rent):** ₹{format_indian(total_returns)}")
+st.write(f"**Net Profit:** ₹{format_indian(net_profit)}")
 
-if irr is not None:
-    st.metric("IRR", f"{irr * 100:.2f}%")
-else:
-    st.error("IRR could not be calculated for these inputs (try adjusting values).")
+col_irr, col_roi = st.columns(2)
+with col_irr:
+    if irr is not None:
+        st.metric("IRR (Annualized)", f"{irr * 100:.2f}%")
+    else:
+        st.error("IRR could not be calculated (try adjusting values).")
+with col_roi:
+    st.metric("ROI (Total, Non-Annualized)", f"{roi:.2f}%")
 
 with st.expander("Cash Flow Breakdown (Year by Year)"):
     for i, cf in enumerate(cash_flows):
