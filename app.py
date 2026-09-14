@@ -234,6 +234,27 @@ with st.expander("Cash Flow Breakdown (Year by Year)"):
         st.write(f"Year {i}: {label} — ₹{format_indian(cf)}")
 
 # ============================================================
+# BENCHMARK COMPARISON — static reference figures
+# ============================================================
+st.subheader("Benchmark Annual Returns (for comparison)")
+st.caption("Historical figures as of mid-to-late 2026. Past performance does not guarantee future returns.")
+
+st.markdown("""
+| Benchmark | Annual Return (CAGR) |
+|---|---|
+| Nifty 50 (5-Year) | ~11.7% |
+| Nifty 50 (10-Year) | ~13.4% |
+| Nifty Realty Index (5-Year) | ~20.6% |
+| Nifty Realty Index (1-Year) | ~-4% to -8% (volatile) |
+| Gold — India (10-Year) | ~10–11% |
+| Gold — India (5-Year) | ~10–17% (recent rally skews this higher) |
+| Bank FD (current, 1–5 Yr) | ~6.5–7.1% |
+| NHB RESIDEX — Delhi (official index) | ~0–6% |
+| Gurgaon Capital Values (JLL, 2025) | ~12.5% |
+| Delhi-NCR Avg. Price (Anarock, 2025) | ~23% |
+""")
+
+# ============================================================
 # OPTIONAL: Year-by-year growth of the appreciated value (toggle ON only)
 # ============================================================
 if use_appreciation_rate:
