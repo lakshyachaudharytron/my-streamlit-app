@@ -1,6 +1,8 @@
 import streamlit as st
 import matplotlib.pyplot as plt
 from matplotlib.ticker import FuncFormatter
+from matplotlib.colors import LinearSegmentedColormap
+import numpy as np
 
 st.set_page_config(page_title="Real Estate IRR Calculator", layout="centered")
 
@@ -113,8 +115,7 @@ def calculate_irr(cash_flows, low=-0.99, high=10.0, tol=1e-6, max_iter=1000):
 def format_indian(number):
     is_negative = number < 0
     number = abs(number)
-    s = f"{number:.2f}"
-    integer_part, decimal_part = s.split(".")
+    integer_part = f"{number:.0f}"
 
     if len(integer_part) <= 3:
         formatted = integer_part
@@ -129,8 +130,7 @@ def format_indian(number):
             parts.insert(0, rest)
         formatted = ",".join(parts) + "," + last_three
 
-    result = f"{formatted}.{decimal_part}"
-    return f"-{result}" if is_negative else result
+    return f"-{formatted}" if is_negative else formatted
 
 def parse_indian(text):
     raw = text.replace(",", "").replace("₹", "").strip()
@@ -442,20 +442,107 @@ def sensitivity_irr(total_invested_amt, premium_amt, n, rent_amt):
 premium_pct_rows = [10, 20, 30, 40, 50, 75, 100]
 years_cols = list(range(1, max(8, n_years + 3) + 1))
 
-sens_header = "| Premium (% of Invested) | " + " | ".join(f"Yr {y}" for y in years_cols) + " |\n"
-sens_divider = "|---" * (len(years_cols) + 1) + "|\n"
-sens_rows_md = ""
-for pct in premium_pct_rows:
+sens_data = np.full((len(premium_pct_rows), len(years_cols)), np.nan)
+for r_idx, pct in enumerate(premium_pct_rows):
     premium_amt = total_invested * (pct / 100)
-    row_cells = []
-    for y in years_cols:
+    for c_idx, y in enumerate(years_cols):
         irr_val = sensitivity_irr(total_invested, premium_amt, y, annual_rent)
-        row_cells.append(f"{irr_val * 100:.0f}%" if irr_val is not None else "N/A")
-    sens_rows_md += f"| {pct}% | " + " | ".join(row_cells) + " |\n"
+        if irr_val is not None:
+            sens_data[r_idx, c_idx] = irr_val * 100
 
-st.markdown(sens_header + sens_divider + sens_rows_md)
+sens_cmap = LinearSegmentedColormap.from_list("sens_cmap", [ROSE, PANEL_DARK, GOLD])
 
+fig_sens, ax_sens = plt.subplots(figsize=(1.1 + len(years_cols) * 0.85, 1.1 + len(premium_pct_rows) * 0.62))
+fig_sens.patch.set_facecolor(BG_DARK)
+ax_sens.set_facecolor(PANEL_DARK)
 
+im = ax_sens.imshow(sens_data, cmap=sens_cmap, aspect="auto")
+
+ax_sens.set_xticks(range(len(years_cols)))
+ax_sens.set_xticklabels([f"Yr {y}" for y in years_cols], color=TEXT_LIGHT, fontsize=9)
+ax_sens.set_yticks(range(len(premium_pct_rows)))
+ax_sens.set_yticklabels([f"{p}%" for p in premium_pct_rows], color=TEXT_LIGHT, fontsize=9)
+ax_sens.set_xlabel("Years to Sell", color=TEXT_LIGHT)
+ax_sens.set_ylabel("Premium (% of Invested)", color=TEXT_LIGHT)
+ax_sens.set_title("IRR Sensitivity (%)", color=TITLE_LIGHT, fontsize=12, pad=10)
+for spine in ax_sens.spines.values():
+    spine.set_visible(False)
+
+for r_idx in range(len(premium_pct_rows)):
+    for c_idx in range(len(years_cols)):
+        val = sens_data[r_idx, c_idx]
+        text = f"{val:.0f}%" if not np.isnan(val) else "N/A"
+        ax_sens.text(c_idx, r_idx, text, ha="center", va="center", color=BG_DARK,
+                     fontsize=8.5, fontweight="bold")
+
+cbar = fig_sens.colorbar(im, ax=ax_sens, fraction=0.046, pad=0.03)
+cbar.ax.tick_params(colors=TEXT_LIGHT, labelsize=8)
+cbar.set_label("IRR (%)", color=TEXT_LIGHT)
+cbar.outline.set_edgecolor(BORDER)
+
+st.pyplot(fig_sens)
+
+# ============================================================
+# BREAK-EVEN PREMIUM — minimum premium needed to match a benchmark's return
+# ============================================================
+st.subheader("Break-Even Premium vs. a Benchmark")
+st.caption(
+    "For each holding period, this shows the minimum premium you'd need to match a "
+    "chosen benchmark's annual return — using the same even-split installment assumption "
+    "as the sensitivity grid above."
+)
+
+breakeven_benchmark = st.selectbox(
+    "Compare against", list(benchmark_rates.keys()), key="breakeven_benchmark"
+)
+target_rate = benchmark_rates[breakeven_benchmark] / 100
+
+def required_premium(total_invested_amt, n, rent_amt, target_r):
+    if n <= 0:
+        return None
+    per_year = total_invested_amt / n
+    last_year_pre_premium_cf = -per_year + rent_amt
+    a_sum = sum((last_year_pre_premium_cf) / (1 + target_r) ** i for i in range(n - 1))
+    premium_needed = -a_sum * (1 + target_r) ** (n - 1) - last_year_pre_premium_cf - total_invested_amt
+    return premium_needed
+
+required_premiums = [
+    required_premium(total_invested, y, annual_rent, target_rate) for y in years_cols
+]
+
+fig_be, ax_be = make_dark_fig(figsize=(7, 4))
+ax_be.plot(years_cols, [p / 1e7 for p in required_premiums], color=STEEL, marker="o",
+           linewidth=2, markersize=5, label=f"Break-even vs {breakeven_benchmark}")
+
+# Highlight the user's actual premium at their chosen years_to_sell
+if n_years in years_cols:
+    be_at_selected = required_premiums[years_cols.index(n_years)]
+    user_color = TEAL if selected_premium >= be_at_selected else ROSE
+    ax_be.scatter([n_years], [selected_premium / 1e7], color=user_color, s=90, zorder=5,
+                  edgecolor=BG_DARK, label="Your premium & years")
+
+ax_be.set_xlabel("Years to Sell")
+ax_be.set_ylabel("Premium Needed (₹ Cr)")
+ax_be.set_xticks(years_cols)
+ax_be.yaxis.set_major_formatter(FuncFormatter(lambda y, _: f"{y:.0f}"))
+ax_be.set_title(f"Premium Needed to Match {breakeven_benchmark}", fontsize=12, pad=10)
+legend = ax_be.legend(facecolor=PANEL_DARK, edgecolor=BORDER, labelcolor=TEXT_LIGHT, fontsize=8.5)
+st.pyplot(fig_be)
+
+if n_years in years_cols:
+    if selected_premium >= be_at_selected:
+        st.write(
+            f"**Your premium (₹{format_indian(selected_premium)}) beats {breakeven_benchmark}** "
+            f"at {n_years} years — it only needed ₹{format_indian(be_at_selected)}."
+        )
+    else:
+        st.write(
+            f"**Your premium (₹{format_indian(selected_premium)}) falls short of {breakeven_benchmark}** "
+            f"at {n_years} years — you'd need ₹{format_indian(be_at_selected)} to match it."
+        )
+
+# ============================================================
+# OPTIONAL: Year-by-year growth of the appreciated value (toggle ON only)
 # ============================================================
 if use_appreciation_rate:
     show_yearly = st.checkbox("Show year-by-year appreciation (before premium)")
