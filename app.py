@@ -122,7 +122,7 @@ def currency_text_input(label, key, default_value):
 st.subheader("Investment Details")
 
 initial_investment = currency_text_input(
-    "Initial Investment (Total Property Value, ₹)", "initial_investment", 10000000.0
+    "Property Value (₹)", "initial_investment", 10000000.0
 )
 
 pct_paid = st.slider("% Paid So Far / Committed (%)", min_value=1, max_value=100, value=50)
@@ -186,21 +186,15 @@ else:
 st.write(f"**Appreciated Value at Year {years_to_sell} (before scenario premium):** ₹{format_indian(appreciated_value)}")
 
 # ============================================================
-# SCENARIO PREMIUMS — Bullish / Normal / Bearish
+# PREMIUM
 # ============================================================
-st.subheader("Scenario Premiums — Bullish / Normal / Bearish")
-st.caption("Each scenario is a flat ₹ premium added on top of the appreciated value above.")
+st.subheader("Premium")
+st.caption("A flat ₹ premium added on top of the appreciated value above.")
 
-bullish_premium = currency_text_input("Bullish Premium (₹)", "bullish_premium", 2000000.0)
-normal_premium = currency_text_input("Normal Premium (₹)", "normal_premium", 1000000.0)
-bearish_premium = currency_text_input("Bearish Premium (₹)", "bearish_premium", 0.0)
-
-scenario = st.selectbox("Select Scenario to Calculate", ["Bullish", "Normal", "Bearish"])
-premium_map = {"Bullish": bullish_premium, "Normal": normal_premium, "Bearish": bearish_premium}
-selected_premium = premium_map[scenario]
+selected_premium = currency_text_input("Premium (₹)", "premium", 2000000.0)
 
 # "Sale value" = what the property would fetch on the open market right now
-# (appreciated value of the FULL property + scenario premium) — this is NOT
+# (appreciated value of the FULL property + premium) — this is NOT
 # what you personally receive, since you haven't paid the full property price.
 sale_value = appreciated_value + selected_premium
 
@@ -238,7 +232,7 @@ roi = (net_profit / total_invested) * 100 if total_invested > 0 else 0.0
 # ============================================================
 st.subheader("Results")
 st.write(f"**Appreciated Value (Year {years_to_sell}, before premium):** ₹{format_indian(appreciated_value)}")
-st.write(f"**{scenario} Premium:** ₹{format_indian(selected_premium)}")
+st.write(f"**Premium:** ₹{format_indian(selected_premium)}")
 st.write(f"**Market Sale Value (Appreciated Value + Premium):** ₹{format_indian(sale_value)}")
 st.write(f"**Remaining Amount Owed to Builder (buyer assumes this):** ₹{format_indian(remaining_owed_to_builder)}")
 st.write(f"**Net Sale Proceeds (what you actually receive):** ₹{format_indian(net_sale_proceeds)}")
