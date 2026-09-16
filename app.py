@@ -1,5 +1,6 @@
 import streamlit as st
 import matplotlib.pyplot as plt
+from matplotlib.ticker import FuncFormatter
 
 st.set_page_config(page_title="Real Estate IRR Calculator", layout="centered")
 
@@ -309,18 +310,6 @@ with col_irr:
 with col_roi:
     st.metric("ROI (Total, Non-Annualized)", f"{roi:.2f}%")
 
-st.markdown("#### Year-by-Year Cash Flow")
-fig_cf, ax_cf = make_dark_fig(figsize=(7, 3.8))
-years_idx = list(range(len(cash_flows)))
-bar_colors = [TEAL if cf >= 0 else ROSE for cf in cash_flows]
-ax_cf.bar(years_idx, [cf / 1e7 for cf in cash_flows], color=bar_colors, width=0.55)
-ax_cf.axhline(0, color=BORDER, linewidth=1)
-ax_cf.set_xlabel("Year")
-ax_cf.set_ylabel("Cash Flow (₹ Cr)")
-ax_cf.set_xticks(years_idx)
-ax_cf.set_title("Cash Flow by Year", fontsize=12, pad=10)
-st.pyplot(fig_cf)
-
 with st.expander("Cash Flow Breakdown (Year by Year)"):
     for i, cf in enumerate(cash_flows):
         label = "Installment + Rent" if i < int(years_to_sell) - 1 else "Net Sale Proceeds − Last Installment + Rent"
@@ -419,6 +408,7 @@ ax_cmp.barh(sorted_names, [v / 1e7 for v in sorted_values], color=sorted_colors,
 ax_cmp.set_xlabel("Final Value (₹ Cr)")
 ax_cmp.set_title("Final Value Comparison (gold = your deal)", fontsize=12, pad=10)
 ax_cmp.grid(axis="x", color=GRID_LINE, linewidth=0.6, alpha=0.7)
+ax_cmp.xaxis.set_major_formatter(FuncFormatter(lambda x, _: f"{x:.0f}"))
 st.pyplot(fig_cmp)
 
 with st.expander("Year-by-Year Compounding Detail (per benchmark)"):
