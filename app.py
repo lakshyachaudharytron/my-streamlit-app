@@ -272,6 +272,74 @@ st.markdown("""
 """)
 
 # ============================================================
+# "WHAT IF YOU INVESTED THE SAME INSTALLMENTS ELSEWHERE?"
+# ============================================================
+# Each installment is treated as a contribution made at that year, which then
+# compounds annually (at the benchmark's CAGR) along with everything invested
+# before it, right up to the year of sale. The final year's installment does
+# not get an extra year of growth, since it's paid right at the point of sale.
+#
+# Example: installments of 20, 10, 30 at a rate r:
+#   Year 1: 20 grows -> 20*(1+r)
+#   Year 2: add 10 -> (20*(1+r) + 10), this then grows -> *(1+r)
+#   Year 3: add 30 -> final value (no further growth, this is the sale year)
+
+st.subheader("What If You Invested the Same Installments Elsewhere?")
+st.caption(
+    "Assumes each installment is invested the year it's paid and compounds "
+    "annually at the benchmark's return, right up to the year you sell."
+)
+
+benchmark_rates = {
+    "Nifty 50 (5-Year)": 11.7,
+    "Nifty 50 (10-Year)": 13.4,
+    "Nifty Realty Index (5-Year)": 20.6,
+    "Nifty Realty Index (1-Year)": -6.0,
+    "Gold — India (10-Year)": 10.5,
+    "Gold — India (5-Year)": 13.5,
+    "Bank FD (current, 1–5 Yr)": 6.8,
+    "NHB RESIDEX — Delhi": 3.0,
+    "Gurgaon Capital Values (JLL, 2025)": 12.5,
+    "Delhi-NCR Avg. Price (Anarock, 2025)": 23.0,
+}
+
+n_years = int(years_to_sell)
+
+def compounded_value(cash_amounts, annual_rate_pct, n):
+    r = annual_rate_pct / 100
+    balance = 0.0
+    for i in range(n):
+        balance += cash_amounts[i]
+        if i < n - 1:
+            balance *= (1 + r)
+    return balance
+
+benchmark_table_md = "| Benchmark | Annual Return (CAGR) | Compounded Value of Your Installments |\n|---|---|---|\n"
+for name, pct in benchmark_rates.items():
+    fv = compounded_value(installments, pct, n_years)
+    benchmark_table_md += f"| {name} | {pct:.1f}% | ₹{format_indian(fv)} |\n"
+
+st.markdown(benchmark_table_md)
+
+st.write(f"**Your Total Invested (same amount used above):** ₹{format_indian(total_invested)}")
+st.write(f"**Your Real Estate Net Sale Proceeds (for comparison):** ₹{format_indian(net_sale_proceeds)}")
+
+with st.expander("Year-by-Year Compounding Detail (per benchmark)"):
+    detail_benchmark = st.selectbox("Choose a benchmark to see the year-by-year build-up", list(benchmark_rates.keys()))
+    r_detail = benchmark_rates[detail_benchmark] / 100
+    running_balance = 0.0
+    for i in range(n_years):
+        running_balance += installments[i]
+        label = f"Year {i}: + ₹{format_indian(installments[i])} → Balance before growth: ₹{format_indian(running_balance)}"
+        if i < n_years - 1:
+            running_balance *= (1 + r_detail)
+            label += f" → After {detail_benchmark} growth: ₹{format_indian(running_balance)}"
+        else:
+            label += " → (sale year, no further growth)"
+        st.write(label)
+    st.write(f"**Final Compounded Value ({detail_benchmark}):** ₹{format_indian(running_balance)}")
+
+# ============================================================
 # OPTIONAL: Year-by-year growth of the appreciated value (toggle ON only)
 # ============================================================
 if use_appreciation_rate:
