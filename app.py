@@ -421,7 +421,41 @@ with st.expander("Year-by-Year Compounding Detail (per benchmark)"):
     st.write(f"**Final Compounded Value ({detail_benchmark}):** ₹{format_indian(running_balance)}")
 
 # ============================================================
-# OPTIONAL: Year-by-year growth of the appreciated value (toggle ON only)
+# SENSITIVITY TABLE — IRR across Premium (% of Invested) x Years to Sell
+# ============================================================
+st.subheader("Sensitivity: IRR by Premium and Holding Period")
+st.caption(
+    "Rows = premium as a % of your total invested amount. Columns = years until sale. "
+    "Each cell assumes your total invested amount is split evenly across that many years "
+    "(custom installment amounts are not used here, so the grid stays well-defined for "
+    "any number of years)."
+)
+
+def sensitivity_irr(total_invested_amt, premium_amt, n, rent_amt):
+    if n <= 0:
+        return None
+    per_year = total_invested_amt / n
+    cfs = [-per_year + rent_amt for _ in range(n - 1)]
+    cfs.append(-per_year + rent_amt + (total_invested_amt + premium_amt))
+    return calculate_irr(cfs)
+
+premium_pct_rows = [10, 20, 30, 40, 50, 75, 100]
+years_cols = list(range(1, max(8, n_years + 3) + 1))
+
+sens_header = "| Premium (% of Invested) | " + " | ".join(f"Yr {y}" for y in years_cols) + " |\n"
+sens_divider = "|---" * (len(years_cols) + 1) + "|\n"
+sens_rows_md = ""
+for pct in premium_pct_rows:
+    premium_amt = total_invested * (pct / 100)
+    row_cells = []
+    for y in years_cols:
+        irr_val = sensitivity_irr(total_invested, premium_amt, y, annual_rent)
+        row_cells.append(f"{irr_val * 100:.0f}%" if irr_val is not None else "N/A")
+    sens_rows_md += f"| {pct}% | " + " | ".join(row_cells) + " |\n"
+
+st.markdown(sens_header + sens_divider + sens_rows_md)
+
+
 # ============================================================
 if use_appreciation_rate:
     show_yearly = st.checkbox("Show year-by-year appreciation (before premium)")
