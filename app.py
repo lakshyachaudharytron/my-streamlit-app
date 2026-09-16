@@ -189,23 +189,17 @@ st.write(f"**Appreciated Value at Year {years_to_sell} (before scenario premium)
 # PREMIUM
 # ============================================================
 st.subheader("Premium")
-st.caption("A flat ₹ premium added on top of the appreciated value above.")
+st.caption("A flat ₹ premium on top of what you've paid so far.")
 
 selected_premium = currency_text_input("Premium (₹)", "premium", 2000000.0)
 
-# "Sale value" = what the property would fetch on the open market right now
-# (appreciated value of the FULL property + premium) — this is NOT
-# what you personally receive, since you haven't paid the full property price.
-sale_value = appreciated_value + selected_premium
-
 # ============================================================
-# REMAINING LIABILITY TO BUILDER (the fix)
+# NET SALE PROCEEDS
 # ============================================================
 # When you sell/assign an under-construction allotment before possession,
-# the buyer takes over whatever you still owe the builder. You only ever
-# receive: (market sale value) - (remaining amount owed to builder).
-remaining_owed_to_builder = max(initial_investment - total_paid_actual, 0.0)
-net_sale_proceeds = sale_value - remaining_owed_to_builder
+# you receive back what you've already paid the builder, plus your premium.
+# The buyer separately takes over whatever remains owed to the builder.
+net_sale_proceeds = total_paid_actual + selected_premium
 
 # ============================================================
 # CASH FLOW CONSTRUCTION
@@ -232,10 +226,9 @@ roi = (net_profit / total_invested) * 100 if total_invested > 0 else 0.0
 # ============================================================
 st.subheader("Results")
 st.write(f"**Appreciated Value (Year {years_to_sell}, before premium):** ₹{format_indian(appreciated_value)}")
+st.write(f"**Total Paid:** ₹{format_indian(total_paid_actual)}")
 st.write(f"**Premium:** ₹{format_indian(selected_premium)}")
-st.write(f"**Market Sale Value (Appreciated Value + Premium):** ₹{format_indian(sale_value)}")
-st.write(f"**Remaining Amount Owed to Builder (buyer assumes this):** ₹{format_indian(remaining_owed_to_builder)}")
-st.write(f"**Net Sale Proceeds (what you actually receive):** ₹{format_indian(net_sale_proceeds)}")
+st.write(f"**Net Sale Proceeds (Total Paid + Premium):** ₹{format_indian(net_sale_proceeds)}")
 if use_rental_income:
     st.write(f"**Annual Rent (included every year):** ₹{format_indian(annual_rent)}")
     st.write(f"**Total Rent Collected (over {years_to_sell} years):** ₹{format_indian(total_rent_collected)}")
