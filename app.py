@@ -380,13 +380,7 @@ def compounded_value(cash_amounts, annual_rate_pct, n):
             balance *= (1 + r)
     return balance
 
-your_return_str = f"{irr * 100:.1f}%" if irr is not None else "N/A"
-
 comparison_table_md = "| Investment | Annual Return | Final Value |\n|---|---|---|\n"
-comparison_table_md += (
-    f"| **Your Real Estate Deal** | **{your_return_str}** | "
-    f"**₹{format_indian(net_sale_proceeds)}** |\n"
-)
 for name, pct in benchmark_rates.items():
     fv = compounded_value(installments, pct, n_years)
     comparison_table_md += f"| {name} | {pct:.1f}% | ₹{format_indian(fv)} |\n"
@@ -444,6 +438,7 @@ if use_appreciation_rate:
         ax_app.set_xlabel("Year")
         ax_app.set_ylabel("Property Value (₹ Cr)")
         ax_app.set_xticks(yrs_range)
+        ax_app.yaxis.set_major_formatter(FuncFormatter(lambda y, _: f"{y:.0f}"))
         ax_app.set_title("Property Value Appreciation Over Time", fontsize=12, pad=10)
         st.pyplot(fig_app)
 
