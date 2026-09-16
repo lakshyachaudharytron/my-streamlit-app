@@ -199,15 +199,27 @@ scenario = st.selectbox("Select Scenario to Calculate", ["Bullish", "Normal", "B
 premium_map = {"Bullish": bullish_premium, "Normal": normal_premium, "Bearish": bearish_premium}
 selected_premium = premium_map[scenario]
 
+# "Sale value" = what the property would fetch on the open market right now
+# (appreciated value of the FULL property + scenario premium) — this is NOT
+# what you personally receive, since you haven't paid the full property price.
 sale_value = appreciated_value + selected_premium
+
+# ============================================================
+# REMAINING LIABILITY TO BUILDER (the fix)
+# ============================================================
+# When you sell/assign an under-construction allotment before possession,
+# the buyer takes over whatever you still owe the builder. You only ever
+# receive: (market sale value) - (remaining amount owed to builder).
+remaining_owed_to_builder = max(initial_investment - total_paid_actual, 0.0)
+net_sale_proceeds = sale_value - remaining_owed_to_builder
 
 # ============================================================
 # CASH FLOW CONSTRUCTION
 # ============================================================
 # Each year: -installment + rent (rent is 0 if toggle is off)
-# Final year additionally nets the sale value in
+# Final year additionally nets in the NET sale proceeds (not the raw market value)
 cash_flows = [-installments[i] + annual_rent for i in range(int(years_to_sell) - 1)]
-final_year_cashflow = (sale_value - installments[-1]) + annual_rent
+final_year_cashflow = -installments[-1] + annual_rent + net_sale_proceeds
 cash_flows.append(final_year_cashflow)
 
 irr = calculate_irr(cash_flows)
@@ -215,9 +227,9 @@ irr = calculate_irr(cash_flows)
 # ============================================================
 # ROI CALCULATION
 # ============================================================
-total_invested = sum(installments)
+total_invested = sum(installments)  # = total_paid_actual, what you actually paid out of pocket
 total_rent_collected = annual_rent * int(years_to_sell)
-total_returns = sale_value + total_rent_collected
+total_returns = net_sale_proceeds + total_rent_collected
 net_profit = total_returns - total_invested
 roi = (net_profit / total_invested) * 100 if total_invested > 0 else 0.0
 
@@ -227,12 +239,14 @@ roi = (net_profit / total_invested) * 100 if total_invested > 0 else 0.0
 st.subheader("Results")
 st.write(f"**Appreciated Value (Year {years_to_sell}, before premium):** ₹{format_indian(appreciated_value)}")
 st.write(f"**{scenario} Premium:** ₹{format_indian(selected_premium)}")
-st.write(f"**Final Sale Value (Appreciated Value + Premium):** ₹{format_indian(sale_value)}")
+st.write(f"**Market Sale Value (Appreciated Value + Premium):** ₹{format_indian(sale_value)}")
+st.write(f"**Remaining Amount Owed to Builder (buyer assumes this):** ₹{format_indian(remaining_owed_to_builder)}")
+st.write(f"**Net Sale Proceeds (what you actually receive):** ₹{format_indian(net_sale_proceeds)}")
 if use_rental_income:
     st.write(f"**Annual Rent (included every year):** ₹{format_indian(annual_rent)}")
     st.write(f"**Total Rent Collected (over {years_to_sell} years):** ₹{format_indian(total_rent_collected)}")
-st.write(f"**Total Invested:** ₹{format_indian(total_invested)}")
-st.write(f"**Total Returns (Sale + Rent):** ₹{format_indian(total_returns)}")
+st.write(f"**Total Invested (out of pocket):** ₹{format_indian(total_invested)}")
+st.write(f"**Total Returns (Net Sale Proceeds + Rent):** ₹{format_indian(total_returns)}")
 st.write(f"**Net Profit:** ₹{format_indian(net_profit)}")
 
 col_irr, col_roi = st.columns(2)
@@ -246,7 +260,7 @@ with col_roi:
 
 with st.expander("Cash Flow Breakdown (Year by Year)"):
     for i, cf in enumerate(cash_flows):
-        label = "Installment + Rent" if i < int(years_to_sell) - 1 else "Sale − Last Installment + Rent (net)"
+        label = "Installment + Rent" if i < int(years_to_sell) - 1 else "Net Sale Proceeds − Last Installment + Rent"
         st.write(f"Year {i}: {label} — ₹{format_indian(cf)}")
 
 # ============================================================
