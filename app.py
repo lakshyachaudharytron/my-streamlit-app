@@ -2,49 +2,83 @@ import streamlit as st
 
 st.set_page_config(page_title="Real Estate IRR Calculator", layout="centered")
 
-# ---------- Teal theme CSS ----------
+# ---------- Classy theme CSS ----------
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Source+Sans+3:wght@400;500;600&family=JetBrains+Mono:wght@500;600&display=swap');
 
 html, body, [class*="css"]  {
-    font-family: 'Inter', sans-serif;
+    font-family: 'Source Sans 3', sans-serif;
+}
+.stApp {
+    background-color: #0B0F14;
 }
 h1 {
-    color: #14B8A6;
+    font-family: 'Playfair Display', serif;
+    color: #D8B36A;
     font-weight: 700;
-    letter-spacing: -0.02em;
-    border-bottom: 2px solid #1E293B;
-    padding-bottom: 0.6rem;
-    margin-bottom: 1.5rem;
+    letter-spacing: -0.01em;
+    border-bottom: 2px solid #2A3240;
+    padding-bottom: 0.7rem;
+    margin-bottom: 1.6rem;
 }
 h3 {
-    color: #FFFFFF;
+    font-family: 'Playfair Display', serif;
+    color: #EDEBE5;
     font-weight: 600;
-    margin-top: 2rem;
+    letter-spacing: 0.01em;
+    margin-top: 2.2rem;
 }
 [data-testid="stMarkdownContainer"] p strong {
     font-family: 'JetBrains Mono', monospace;
-    color: #14B8A6;
+    color: #D8B36A;
 }
 [data-testid="stMetric"] {
-    background-color: #1E293B;
-    border: 1px solid #0F6E68;
-    border-left: 4px solid #14B8A6;
-    border-radius: 6px;
-    padding: 1rem 1.25rem;
+    background-color: #151A22;
+    border: 1px solid #2A3240;
+    border-left: 4px solid #D8B36A;
+    border-radius: 8px;
+    padding: 1.1rem 1.35rem;
+    box-shadow: 0 3px 12px rgba(0,0,0,0.3);
 }
 [data-testid="stMetricValue"] {
     font-family: 'JetBrains Mono', monospace;
-    color: #14B8A6;
+    color: #D8B36A;
     font-weight: 600;
 }
+[data-testid="stMetricLabel"] {
+    color: #A9B1BC;
+}
 [data-testid="stExpander"] {
-    border: 1px solid #1E293B;
-    border-radius: 6px;
+    border: 1px solid #2A3240;
+    border-radius: 8px;
+    background-color: #10141B;
 }
 [data-testid="stCaptionContainer"] {
-    color: #94A3B8;
+    color: #8D97A3;
+    font-style: italic;
+}
+table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 0.5rem 0 1rem 0;
+}
+table thead th {
+    background-color: #151A22;
+    color: #D8B36A;
+    font-family: 'Playfair Display', serif;
+    font-weight: 600;
+    text-align: left;
+    padding: 0.65rem 0.9rem;
+    border-bottom: 2px solid #D8B36A;
+}
+table tbody td {
+    padding: 0.6rem 0.9rem;
+    border-bottom: 1px solid #232A34;
+    color: #E5E3DD;
+}
+table tbody tr:nth-child(even) {
+    background-color: #10141B;
 }
 </style>
 """, unsafe_allow_html=True)
