@@ -1,4 +1,5 @@
 import streamlit as st
+import matplotlib.pyplot as plt
 
 st.set_page_config(page_title="Real Estate IRR Calculator", layout="centered")
 
@@ -150,6 +151,35 @@ def currency_text_input(label, key, default_value):
     st.text_input(label, key=key, on_change=_reformat)
     return parse_indian(st.session_state[key])
 
+# ---------- Matplotlib styling to match the app's dark/gold theme ----------
+GOLD = "#D8B36A"
+TEAL = "#4C9A8E"
+ROSE = "#C0596B"
+STEEL = "#5C7A99"
+TEXT_LIGHT = "#C7CDD6"
+TITLE_LIGHT = "#EDEBE5"
+GRID_LINE = "#232A34"
+BG_DARK = "#0B0F14"
+PANEL_DARK = "#10141B"
+BORDER = "#2A3240"
+
+plt.rcParams["font.family"] = "serif"
+
+def make_dark_fig(figsize=(7, 4)):
+    fig, ax = plt.subplots(figsize=figsize)
+    fig.patch.set_facecolor(BG_DARK)
+    ax.set_facecolor(PANEL_DARK)
+    ax.tick_params(colors=TEXT_LIGHT, labelsize=9)
+    for spine in ("bottom", "left"):
+        ax.spines[spine].set_color(BORDER)
+    for spine in ("top", "right"):
+        ax.spines[spine].set_visible(False)
+    ax.title.set_color(TITLE_LIGHT)
+    ax.xaxis.label.set_color(TEXT_LIGHT)
+    ax.yaxis.label.set_color(TEXT_LIGHT)
+    ax.grid(axis="x" if ax.get_ylabel() == "" else "y", color=GRID_LINE, linewidth=0.6, alpha=0.7)
+    return fig, ax
+
 # ============================================================
 # INPUTS
 # ============================================================
@@ -279,6 +309,25 @@ with col_irr:
 with col_roi:
     st.metric("ROI (Total, Non-Annualized)", f"{roi:.2f}%")
 
+st.markdown("#### Year-by-Year Cash Flow")
+fig_cf, ax_cf = make_dark_fig(figsize=(7, 3.8))
+years_idx = list(range(len(cash_flows)))
+bar_colors = []
+for i, cf in enumerate(cash_flows):
+    if i == len(cash_flows) - 1:
+        bar_colors.append(GOLD)  # sale year, highlighted
+    elif cf >= 0:
+        bar_colors.append(TEAL)
+    else:
+        bar_colors.append(ROSE)
+ax_cf.bar(years_idx, [cf / 1e7 for cf in cash_flows], color=bar_colors, width=0.55)
+ax_cf.axhline(0, color=BORDER, linewidth=1)
+ax_cf.set_xlabel("Year")
+ax_cf.set_ylabel("Cash Flow (₹ Cr)")
+ax_cf.set_xticks(years_idx)
+ax_cf.set_title("Cash Flow by Year (gold = sale year)", fontsize=12, pad=10)
+st.pyplot(fig_cf)
+
 with st.expander("Cash Flow Breakdown (Year by Year)"):
     for i, cf in enumerate(cash_flows):
         label = "Installment + Rent" if i < int(years_to_sell) - 1 else "Net Sale Proceeds − Last Installment + Rent"
@@ -318,10 +367,11 @@ st.markdown("""
 #   Year 2: add 10 -> (20*(1+r) + 10), this then grows -> *(1+r)
 #   Year 3: add 30 -> final value (no further growth, this is the sale year)
 
-st.subheader("What If You Invested the Same Installments Elsewhere?")
+st.subheader("Your Deal vs. The Alternatives")
 st.caption(
     "Assumes each installment is invested the year it's paid and compounds "
-    "annually at the benchmark's return, right up to the year you sell."
+    "annually at the benchmark's return, right up to the year you sell. "
+    "Your real estate return (IRR) is shown alongside for direct comparison."
 )
 
 benchmark_rates = {
@@ -348,15 +398,35 @@ def compounded_value(cash_amounts, annual_rate_pct, n):
             balance *= (1 + r)
     return balance
 
-benchmark_table_md = "| Benchmark | Annual Return (CAGR) | Compounded Value of Your Installments |\n|---|---|---|\n"
+your_return_str = f"{irr * 100:.1f}%" if irr is not None else "N/A"
+
+comparison_table_md = "| Investment | Annual Return | Final Value |\n|---|---|---|\n"
+comparison_table_md += (
+    f"| **Your Real Estate Deal** | **{your_return_str}** | "
+    f"**₹{format_indian(net_sale_proceeds)}** |\n"
+)
 for name, pct in benchmark_rates.items():
     fv = compounded_value(installments, pct, n_years)
-    benchmark_table_md += f"| {name} | {pct:.1f}% | ₹{format_indian(fv)} |\n"
+    comparison_table_md += f"| {name} | {pct:.1f}% | ₹{format_indian(fv)} |\n"
 
-st.markdown(benchmark_table_md)
+st.markdown(comparison_table_md)
+st.caption(f"Based on the same ₹{format_indian(total_invested)} invested across your installment schedule.")
 
-st.write(f"**Your Total Invested (same amount used above):** ₹{format_indian(total_invested)}")
-st.write(f"**Your Real Estate Net Sale Proceeds (for comparison):** ₹{format_indian(net_sale_proceeds)}")
+st.markdown("#### Final Value — Your Deal vs. Alternatives")
+compare_names = ["Your Real Estate Deal"] + list(benchmark_rates.keys())
+compare_values = [net_sale_proceeds] + [
+    compounded_value(installments, pct, n_years) for pct in benchmark_rates.values()
+]
+compare_colors = [GOLD] + [STEEL] * len(benchmark_rates)
+sorted_rows = sorted(zip(compare_names, compare_values, compare_colors), key=lambda r: r[1])
+sorted_names, sorted_values, sorted_colors = zip(*sorted_rows)
+
+fig_cmp, ax_cmp = make_dark_fig(figsize=(7, 5))
+ax_cmp.barh(sorted_names, [v / 1e7 for v in sorted_values], color=sorted_colors, height=0.6)
+ax_cmp.set_xlabel("Final Value (₹ Cr)")
+ax_cmp.set_title("Final Value Comparison (gold = your deal)", fontsize=12, pad=10)
+ax_cmp.grid(axis="x", color=GRID_LINE, linewidth=0.6, alpha=0.7)
+st.pyplot(fig_cmp)
 
 with st.expander("Year-by-Year Compounding Detail (per benchmark)"):
     detail_benchmark = st.selectbox("Choose a benchmark to see the year-by-year build-up", list(benchmark_rates.keys()))
