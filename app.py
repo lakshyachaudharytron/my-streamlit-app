@@ -312,20 +312,13 @@ with col_roi:
 st.markdown("#### Year-by-Year Cash Flow")
 fig_cf, ax_cf = make_dark_fig(figsize=(7, 3.8))
 years_idx = list(range(len(cash_flows)))
-bar_colors = []
-for i, cf in enumerate(cash_flows):
-    if i == len(cash_flows) - 1:
-        bar_colors.append(GOLD)  # sale year, highlighted
-    elif cf >= 0:
-        bar_colors.append(TEAL)
-    else:
-        bar_colors.append(ROSE)
+bar_colors = [TEAL if cf >= 0 else ROSE for cf in cash_flows]
 ax_cf.bar(years_idx, [cf / 1e7 for cf in cash_flows], color=bar_colors, width=0.55)
 ax_cf.axhline(0, color=BORDER, linewidth=1)
 ax_cf.set_xlabel("Year")
 ax_cf.set_ylabel("Cash Flow (₹ Cr)")
 ax_cf.set_xticks(years_idx)
-ax_cf.set_title("Cash Flow by Year (gold = sale year)", fontsize=12, pad=10)
+ax_cf.set_title("Cash Flow by Year", fontsize=12, pad=10)
 st.pyplot(fig_cf)
 
 with st.expander("Cash Flow Breakdown (Year by Year)"):
@@ -450,6 +443,20 @@ if use_appreciation_rate:
     show_yearly = st.checkbox("Show year-by-year appreciation (before premium)")
     if show_yearly:
         st.subheader("Year-by-Year Appreciated Value")
-        for year in range(int(years_to_sell) + 1):
+
+        yrs_range = list(range(int(years_to_sell) + 1))
+        vals_range = [initial_investment * (1 + rate) ** y for y in yrs_range]
+
+        fig_app, ax_app = make_dark_fig(figsize=(7, 3.8))
+        ax_app.plot(yrs_range, [v / 1e7 for v in vals_range], color=GOLD, marker="o",
+                    linewidth=2, markersize=5, markerfacecolor=GOLD, markeredgecolor=BG_DARK)
+        ax_app.fill_between(yrs_range, [v / 1e7 for v in vals_range], color=GOLD, alpha=0.08)
+        ax_app.set_xlabel("Year")
+        ax_app.set_ylabel("Property Value (₹ Cr)")
+        ax_app.set_xticks(yrs_range)
+        ax_app.set_title("Property Value Appreciation Over Time", fontsize=12, pad=10)
+        st.pyplot(fig_app)
+
+        for year in yrs_range:
             year_value = initial_investment * (1 + rate) ** year
             st.write(f"Year {year}: ₹{format_indian(year_value)}")
