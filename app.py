@@ -1,7 +1,7 @@
 import streamlit as st
 import matplotlib.pyplot as plt
 from matplotlib.ticker import FuncFormatter
-from matplotlib.colors import LinearSegmentedColormap
+from matplotlib.colors import LinearSegmentedColormap, TwoSlopeNorm
 import numpy as np
 
 st.set_page_config(page_title="Real Estate IRR Calculator", layout="centered")
