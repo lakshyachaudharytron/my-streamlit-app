@@ -260,18 +260,21 @@ st.caption("A flat ₹ premium on top of what you've paid so far.")
 selected_premium = currency_text_input("Premium (₹)", "premium", 2000000.0)
 
 # ============================================================
-# TAXES
+# CAPITAL GAINS TAX
 # ============================================================
-st.subheader("Taxes")
+st.subheader("Capital Gains Tax")
 st.caption(
-    "Applies to the gain only (your premium and any rental income), not to the "
-    "return of your own invested capital."
+    "Since you're selling an allotment before possession (not a completed property), "
+    "the gain is typically taxed as capital gains on transfer of rights — at your "
+    "income slab rate if held under 24 months (short-term), or the applicable "
+    "long-term rate if held longer. Applies to your premium and any rental income, "
+    "not to the return of your own invested capital."
 )
 
-use_tax = st.toggle("Apply tax on profit")
+use_tax = st.toggle("Apply capital gains tax on profit")
 
 if use_tax:
-    tax_rate_pct = st.slider("Tax Rate on Profit (%)", 0.0, 45.0, 20.0, 0.5)
+    tax_rate_pct = st.slider("Capital Gains Tax Rate (%)", 0.0, 45.0, 20.0, 0.5)
 else:
     tax_rate_pct = 0.0
 
@@ -345,7 +348,7 @@ with col_roi:
     st.metric("ROI (Total, Non-Annualized)", f"{roi:.2f}%")
 
 if use_tax:
-    st.markdown(f"**After {tax_rate_pct:.1f}% Tax on Profit:**")
+    st.markdown(f"**After {tax_rate_pct:.1f}% Capital Gains Tax:**")
     st.write(f"**Net Profit (Post-Tax):** ₹{format_indian(net_profit_after_tax)}")
     col_irr_tax, col_roi_tax = st.columns(2)
     with col_irr_tax:
