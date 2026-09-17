@@ -260,12 +260,31 @@ st.caption("A flat ₹ premium on top of what you've paid so far.")
 selected_premium = currency_text_input("Premium (₹)", "premium", 2000000.0)
 
 # ============================================================
+# TAXES
+# ============================================================
+st.subheader("Taxes")
+st.caption(
+    "Applies to the gain only (your premium and any rental income), not to the "
+    "return of your own invested capital."
+)
+
+use_tax = st.toggle("Apply tax on profit")
+
+if use_tax:
+    tax_rate_pct = st.slider("Tax Rate on Profit (%)", 0.0, 45.0, 20.0, 0.5)
+else:
+    tax_rate_pct = 0.0
+
+tax_factor = 1 - (tax_rate_pct / 100)
+
+# ============================================================
 # NET SALE PROCEEDS
 # ============================================================
 # When you sell/assign an under-construction allotment before possession,
 # you receive back what you've already paid the builder, plus your premium.
 # The buyer separately takes over whatever remains owed to the builder.
 net_sale_proceeds = total_paid_actual + selected_premium
+net_sale_proceeds_after_tax = total_paid_actual + (selected_premium * tax_factor)
 
 # ============================================================
 # CASH FLOW CONSTRUCTION
@@ -278,6 +297,15 @@ cash_flows.append(final_year_cashflow)
 
 irr = calculate_irr(cash_flows)
 
+# Post-tax cash flows: rent is taxed as it's earned each year, and the premium
+# (capital gain) portion of the sale is taxed in the final year. The return
+# of your own invested capital is untouched.
+post_tax_cash_flows = [-installments[i] + (annual_rent * tax_factor) for i in range(int(years_to_sell) - 1)]
+post_tax_final_year_cashflow = -installments[-1] + (annual_rent * tax_factor) + net_sale_proceeds_after_tax
+post_tax_cash_flows.append(post_tax_final_year_cashflow)
+
+post_tax_irr = calculate_irr(post_tax_cash_flows)
+
 # ============================================================
 # ROI CALCULATION
 # ============================================================
@@ -286,6 +314,11 @@ total_rent_collected = annual_rent * int(years_to_sell)
 total_returns = net_sale_proceeds + total_rent_collected
 net_profit = total_returns - total_invested
 roi = (net_profit / total_invested) * 100 if total_invested > 0 else 0.0
+
+total_rent_collected_after_tax = total_rent_collected * tax_factor
+total_returns_after_tax = net_sale_proceeds_after_tax + total_rent_collected_after_tax
+net_profit_after_tax = total_returns_after_tax - total_invested
+roi_after_tax = (net_profit_after_tax / total_invested) * 100 if total_invested > 0 else 0.0
 
 # ============================================================
 # RESULTS
@@ -310,6 +343,18 @@ with col_irr:
         st.error("IRR could not be calculated (try adjusting values).")
 with col_roi:
     st.metric("ROI (Total, Non-Annualized)", f"{roi:.2f}%")
+
+if use_tax:
+    st.markdown(f"**After {tax_rate_pct:.1f}% Tax on Profit:**")
+    st.write(f"**Net Profit (Post-Tax):** ₹{format_indian(net_profit_after_tax)}")
+    col_irr_tax, col_roi_tax = st.columns(2)
+    with col_irr_tax:
+        if post_tax_irr is not None:
+            st.metric("IRR (Post-Tax)", f"{post_tax_irr * 100:.2f}%")
+        else:
+            st.error("Post-tax IRR could not be calculated.")
+    with col_roi_tax:
+        st.metric("ROI (Post-Tax)", f"{roi_after_tax:.2f}%")
 
 with st.expander("Cash Flow Breakdown (Year by Year)"):
     for i, cf in enumerate(cash_flows):
