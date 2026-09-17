@@ -154,6 +154,7 @@ def currency_text_input(label, key, default_value):
 
 # ---------- Matplotlib styling to match the app's dark/gold theme ----------
 GOLD = "#D8B36A"
+EMERALD = "#3FA66B"
 TEAL = "#4C9A8E"
 ROSE = "#C0596B"
 STEEL = "#5C7A99"
@@ -450,7 +451,7 @@ for r_idx, pct in enumerate(premium_pct_rows):
         if irr_val is not None:
             sens_data[r_idx, c_idx] = irr_val * 100
 
-sens_cmap = LinearSegmentedColormap.from_list("sens_cmap", [ROSE, PANEL_DARK, GOLD])
+sens_cmap = LinearSegmentedColormap.from_list("sens_cmap", [ROSE, PANEL_DARK, EMERALD])
 
 fig_sens, ax_sens = plt.subplots(figsize=(1.1 + len(years_cols) * 0.85, 1.1 + len(premium_pct_rows) * 0.62))
 fig_sens.patch.set_facecolor(BG_DARK)
@@ -472,7 +473,7 @@ for r_idx in range(len(premium_pct_rows)):
     for c_idx in range(len(years_cols)):
         val = sens_data[r_idx, c_idx]
         text = f"{val:.0f}%" if not np.isnan(val) else "N/A"
-        ax_sens.text(c_idx, r_idx, text, ha="center", va="center", color=BG_DARK,
+        ax_sens.text(c_idx, r_idx, text, ha="center", va="center", color="#FFFFFF",
                      fontsize=8.5, fontweight="bold")
 
 cbar = fig_sens.colorbar(im, ax=ax_sens, fraction=0.046, pad=0.03)
