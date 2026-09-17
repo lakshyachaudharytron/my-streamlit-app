@@ -399,7 +399,7 @@ st.markdown("""
 #   Year 2: add 10 -> (20*(1+r) + 10), this then grows -> *(1+r)
 #   Year 3: add 30 -> final value (no further growth, this is the sale year)
 
-st.subheader("Your Deal vs. The Alternatives")
+st.subheader(f"Your Deal vs. The Alternatives — Final Value After {int(years_to_sell)} Year(s)")
 st.caption(
     "Assumes each installment is invested the year it's paid and compounds "
     "annually at the benchmark's return, right up to the year you sell. "
@@ -436,7 +436,10 @@ for name, pct in benchmark_rates.items():
     comparison_table_md += f"| {name} | {pct:.1f}% | ₹{format_indian(fv)} |\n"
 
 st.markdown(comparison_table_md)
-st.caption(f"Based on the same ₹{format_indian(total_invested)} invested across your installment schedule.")
+st.caption(
+    f"Based on the same ₹{format_indian(total_invested)} invested across your installment "
+    f"schedule, compounded over {int(years_to_sell)} year(s) to match your selected holding period."
+)
 
 st.markdown("#### Final Value — Your Deal vs. Alternatives")
 compare_names = ["Your Real Estate Deal"] + list(benchmark_rates.keys())
