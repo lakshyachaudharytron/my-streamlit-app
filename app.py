@@ -433,8 +433,13 @@ st.caption(
 )
 
 def sensitivity_irr(total_invested_amt, premium_amt, n, rent_amt):
-    if n <= 0:
+    if n <= 0 or total_invested_amt <= 0:
         return None
+    if n == 1:
+        # With a 1-year hold, installment and sale proceeds land in the same
+        # period, so there's no discounting to solve for — the annualized
+        # return is simply the profit over the amount invested.
+        return (rent_amt + premium_amt) / total_invested_amt
     per_year = total_invested_amt / n
     cfs = [-per_year + rent_amt for _ in range(n - 1)]
     cfs.append(-per_year + rent_amt + (total_invested_amt + premium_amt))
@@ -501,6 +506,10 @@ target_rate = benchmark_rates[breakeven_benchmark] / 100
 def required_premium(total_invested_amt, n, rent_amt, target_r):
     if n <= 0:
         return None
+    if n == 1:
+        # Matches the sensitivity_irr special case: for a 1-year hold,
+        # solve premium directly from (rent + premium) / invested = target_r.
+        return target_r * total_invested_amt - rent_amt
     per_year = total_invested_amt / n
     last_year_pre_premium_cf = -per_year + rent_amt
     a_sum = sum((last_year_pre_premium_cf) / (1 + target_r) ** i for i in range(n - 1))
