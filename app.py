@@ -591,12 +591,17 @@ fig_be, ax_be = make_dark_fig(figsize=(7, 4))
 ax_be.plot(years_cols, [p / 1e7 for p in required_premiums], color=PLUM, marker="o",
            linewidth=2, markersize=5, label=f"Break-even vs {breakeven_benchmark}")
 
+# Your actual premium as a flat reference line — moves up/down as you change
+# the Premium input, so it's easy to see where it crosses the break-even curve
+ax_be.axhline(selected_premium / 1e7, color=TEAL, linestyle="--", linewidth=1.6,
+              label="Your Premium (flat)")
+
 # Highlight the user's actual premium at their chosen years_to_sell
 if n_years in years_cols:
     be_at_selected = required_premiums[years_cols.index(n_years)]
     user_color = TEAL if selected_premium >= be_at_selected else ROSE
-    ax_be.scatter([n_years], [selected_premium / 1e7], color=user_color, s=90, zorder=5,
-                  edgecolor=BG_DARK, label="Your premium & years")
+    ax_be.scatter([n_years], [selected_premium / 1e7], color=user_color, s=100, zorder=5,
+                  edgecolor=BG_DARK, linewidth=1.5, label="Your Premium & Years")
 
 ax_be.set_xlabel("Years to Sell")
 ax_be.set_ylabel("Premium Needed (₹ Cr)")
