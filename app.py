@@ -158,6 +158,7 @@ EMERALD = "#3FA66B"
 TEAL = "#4C9A8E"
 ROSE = "#C0596B"
 STEEL = "#5C7A99"
+PLUM = "#9C89B8"
 TEXT_LIGHT = "#C7CDD6"
 TITLE_LIGHT = "#EDEBE5"
 GRID_LINE = "#232A34"
@@ -443,13 +444,20 @@ compare_values = [net_sale_proceeds] + [
     compounded_value(installments, pct, n_years) for pct in benchmark_rates.values()
 ]
 compare_colors = [GOLD] + [STEEL] * len(benchmark_rates)
+
+if use_tax:
+    compare_names.append("Your Real Estate Deal (Post-Tax)")
+    compare_values.append(net_sale_proceeds_after_tax)
+    compare_colors.append(PLUM)
+
 sorted_rows = sorted(zip(compare_names, compare_values, compare_colors), key=lambda r: r[1])
 sorted_names, sorted_values, sorted_colors = zip(*sorted_rows)
 
 fig_cmp, ax_cmp = make_dark_fig(figsize=(7, 5))
 ax_cmp.barh(sorted_names, [v / 1e7 for v in sorted_values], color=sorted_colors, height=0.6)
 ax_cmp.set_xlabel("Final Value (₹ Cr)")
-ax_cmp.set_title("Final Value Comparison (gold = your deal)", fontsize=12, pad=10)
+title_suffix = " (gold = pre-tax, plum = post-tax)" if use_tax else " (gold = your deal)"
+ax_cmp.set_title(f"Final Value Comparison{title_suffix}", fontsize=12, pad=10)
 ax_cmp.grid(axis="x", color=GRID_LINE, linewidth=0.6, alpha=0.7)
 ax_cmp.xaxis.set_major_formatter(FuncFormatter(lambda x, _: f"{x:.0f}"))
 st.pyplot(fig_cmp)
