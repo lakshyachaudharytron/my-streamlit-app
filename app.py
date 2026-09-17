@@ -588,7 +588,7 @@ required_premiums = [
 ]
 
 fig_be, ax_be = make_dark_fig(figsize=(7, 4))
-ax_be.plot(years_cols, [p / 1e7 for p in required_premiums], color=STEEL, marker="o",
+ax_be.plot(years_cols, [p / 1e7 for p in required_premiums], color=PLUM, marker="o",
            linewidth=2, markersize=5, label=f"Break-even vs {breakeven_benchmark}")
 
 # Highlight the user's actual premium at their chosen years_to_sell
