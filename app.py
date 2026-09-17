@@ -458,11 +458,22 @@ for r_idx, pct in enumerate(premium_pct_rows):
 
 sens_cmap = LinearSegmentedColormap.from_list("sens_cmap", [ROSE, PANEL_DARK, EMERALD])
 
+# Anchor the color scale so 10% IRR is the crossover point: anything below
+# 10% leans red, anything above gradually leans greener as it climbs toward
+# the highest value actually in the grid (rather than requiring 100%+ to
+# register as green).
+valid_vals = sens_data[~np.isnan(sens_data)]
+data_min = float(valid_vals.min()) if valid_vals.size else 0.0
+data_max = float(valid_vals.max()) if valid_vals.size else 20.0
+sens_vmin = min(data_min, 9.0)
+sens_vmax = max(data_max, 11.0)
+sens_norm = TwoSlopeNorm(vmin=sens_vmin, vcenter=10.0, vmax=sens_vmax)
+
 fig_sens, ax_sens = plt.subplots(figsize=(1.1 + len(years_cols) * 0.85, 1.1 + len(premium_pct_rows) * 0.62))
 fig_sens.patch.set_facecolor(BG_DARK)
 ax_sens.set_facecolor(PANEL_DARK)
 
-im = ax_sens.imshow(sens_data, cmap=sens_cmap, aspect="auto")
+im = ax_sens.imshow(sens_data, cmap=sens_cmap, aspect="auto", norm=sens_norm)
 
 ax_sens.set_xticks(range(len(years_cols)))
 ax_sens.set_xticklabels([f"Yr {y}" for y in years_cols], color=TEXT_LIGHT, fontsize=9)
