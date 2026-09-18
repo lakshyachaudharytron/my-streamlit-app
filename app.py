@@ -430,10 +430,11 @@ def compounded_value(cash_amounts, annual_rate_pct, n):
             balance *= (1 + r)
     return balance
 
-comparison_table_md = "| Investment | Annual Return | Final Value |\n|---|---|---|\n"
+comparison_table_md = "| Investment | Annual Return | Final Value | Profit |\n|---|---|---|---|\n"
 for name, pct in benchmark_rates.items():
     fv = compounded_value(installments, pct, n_years)
-    comparison_table_md += f"| {name} | {pct:.1f}% | ₹{format_indian(fv)} |\n"
+    profit = fv - total_invested
+    comparison_table_md += f"| {name} | {pct:.1f}% | ₹{format_indian(fv)} | ₹{format_indian(profit)} |\n"
 
 st.markdown(comparison_table_md)
 st.caption(
