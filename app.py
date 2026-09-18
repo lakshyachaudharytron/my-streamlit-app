@@ -168,7 +168,7 @@ BORDER = "#2A3240"
 
 plt.rcParams["font.family"] = "serif"
 
-def make_dark_fig(figsize=(7, 4)):
+def make_dark_fig(figsize=(7, 4), grid_axis="x"):
     fig, ax = plt.subplots(figsize=figsize)
     fig.patch.set_facecolor(BG_DARK)
     ax.set_facecolor(PANEL_DARK)
@@ -180,7 +180,7 @@ def make_dark_fig(figsize=(7, 4)):
     ax.title.set_color(TITLE_LIGHT)
     ax.xaxis.label.set_color(TEXT_LIGHT)
     ax.yaxis.label.set_color(TEXT_LIGHT)
-    ax.grid(axis="x" if ax.get_ylabel() == "" else "y", color=GRID_LINE, linewidth=0.6, alpha=0.7)
+    ax.grid(axis=grid_axis, color=GRID_LINE, linewidth=0.6, alpha=0.7)
     return fig, ax
 
 # ============================================================
@@ -456,13 +456,12 @@ if use_tax:
 sorted_rows = sorted(zip(compare_names, compare_values, compare_colors), key=lambda r: r[1])
 sorted_names, sorted_values, sorted_colors = zip(*sorted_rows)
 
-fig_cmp, ax_cmp = make_dark_fig(figsize=(7, 5))
+fig_cmp, ax_cmp = make_dark_fig(figsize=(7, 5), grid_axis="x")
 ax_cmp.barh(sorted_names, [v / 1e7 for v in sorted_values], color=sorted_colors, height=0.6)
 ax_cmp.set_xlabel("Final Value (₹ Cr)")
 title_suffix = " (gold = pre-tax, plum = post-tax)" if use_tax else " (gold = your deal)"
 ax_cmp.set_title(f"Final Value Comparison{title_suffix}", fontsize=12, pad=10)
-ax_cmp.grid(axis="x", color=GRID_LINE, linewidth=0.6, alpha=0.7)
-ax_cmp.xaxis.set_major_formatter(FuncFormatter(lambda x, _: f"{x:.0f}"))
+ax_cmp.xaxis.set_major_formatter(FuncFormatter(lambda x, _: f"{x:.2f}"))
 st.pyplot(fig_cmp)
 
 with st.expander("Year-by-Year Compounding Detail (per benchmark)"):
@@ -590,7 +589,7 @@ required_premiums = [
     required_premium(total_invested, y, annual_rent, target_rate) for y in years_cols
 ]
 
-fig_be, ax_be = make_dark_fig(figsize=(7, 4))
+fig_be, ax_be = make_dark_fig(figsize=(7, 4), grid_axis="y")
 ax_be.plot(years_cols, [p / 1e7 for p in required_premiums], color=PLUM, marker="o",
            linewidth=2, markersize=5, label=f"Break-even vs {breakeven_benchmark}")
 
@@ -609,7 +608,7 @@ if n_years in years_cols:
 ax_be.set_xlabel("Years to Sell")
 ax_be.set_ylabel("Premium Needed (₹ Cr)")
 ax_be.set_xticks(years_cols)
-ax_be.yaxis.set_major_formatter(FuncFormatter(lambda y, _: f"{y:.0f}"))
+ax_be.yaxis.set_major_formatter(FuncFormatter(lambda y, _: f"{y:.2f}"))
 ax_be.set_title(f"Premium Needed to Match {breakeven_benchmark}", fontsize=12, pad=10)
 legend = ax_be.legend(facecolor=PANEL_DARK, edgecolor=BORDER, labelcolor=TEXT_LIGHT, fontsize=8.5)
 st.pyplot(fig_be)
@@ -637,14 +636,14 @@ if use_appreciation_rate:
         yrs_range = list(range(int(years_to_sell) + 1))
         vals_range = [initial_investment * (1 + rate) ** y for y in yrs_range]
 
-        fig_app, ax_app = make_dark_fig(figsize=(7, 3.8))
+        fig_app, ax_app = make_dark_fig(figsize=(7, 3.8), grid_axis="y")
         ax_app.plot(yrs_range, [v / 1e7 for v in vals_range], color=GOLD, marker="o",
                     linewidth=2, markersize=5, markerfacecolor=GOLD, markeredgecolor=BG_DARK)
         ax_app.fill_between(yrs_range, [v / 1e7 for v in vals_range], color=GOLD, alpha=0.08)
         ax_app.set_xlabel("Year")
         ax_app.set_ylabel("Property Value (₹ Cr)")
         ax_app.set_xticks(yrs_range)
-        ax_app.yaxis.set_major_formatter(FuncFormatter(lambda y, _: f"{y:.0f}"))
+        ax_app.yaxis.set_major_formatter(FuncFormatter(lambda y, _: f"{y:.2f}"))
         ax_app.set_title("Property Value Appreciation Over Time", fontsize=12, pad=10)
         st.pyplot(fig_app)
 
