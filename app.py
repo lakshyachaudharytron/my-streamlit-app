@@ -192,9 +192,17 @@ initial_investment = currency_text_input(
     "Property Value (₹)", "initial_investment", 10000000.0
 )
 
-pct_paid = st.slider("% Paid So Far / Committed (%)", min_value=1, max_value=100, value=50)
-total_paid = initial_investment * (pct_paid / 100)
-st.write(f"**Total Paid (based on % Paid):** ₹{format_indian(total_paid)}")
+use_pay_in_full = st.toggle(
+    "Pay in Full (pay 100% of the property value upfront — no installments or % paid)"
+)
+
+if use_pay_in_full:
+    total_paid = initial_investment
+    st.write(f"**Total Paid (100%, in full):** ₹{format_indian(total_paid)}")
+else:
+    pct_paid = st.slider("% Paid So Far / Committed (%)", min_value=1, max_value=100, value=50)
+    total_paid = initial_investment * (pct_paid / 100)
+    st.write(f"**Total Paid (based on % Paid):** ₹{format_indian(total_paid)}")
 
 years_to_sell = st.number_input(
     "Total Years Until Investment is Sold", min_value=1, max_value=30, value=5, step=1
@@ -202,25 +210,34 @@ years_to_sell = st.number_input(
 
 # ============================================================
 # INSTALLMENT SCHEDULE — even split (default) vs custom per-year
+# (skipped entirely when "Pay in Full" is on)
 # ============================================================
 st.subheader("Installment Schedule")
 
-use_custom_installments = st.toggle("Enter custom installment amount for each year (instead of splitting evenly)")
-
-if use_custom_installments:
-    st.caption(f"Enter the installment for each of the {years_to_sell} year(s):")
-    default_even_split = total_paid / years_to_sell
-    installments = []
-    for year in range(int(years_to_sell)):
-        amount = currency_text_input(
-            f"Year {year} Installment (₹)", f"installment_year_{year}", default_even_split
-        )
-        installments.append(amount)
-    total_paid_actual = sum(installments)
-    st.write(f"**Total Paid (sum of custom installments):** ₹{format_indian(total_paid_actual)}")
+if use_pay_in_full:
+    st.caption(
+        "Pay in Full is on — the entire property value is paid upfront in Year 0. "
+        "No installment schedule or % paid is needed."
+    )
+    installments = [initial_investment] + [0.0] * (int(years_to_sell) - 1)
+    total_paid_actual = initial_investment
 else:
-    installments = [total_paid / years_to_sell for _ in range(int(years_to_sell))]
-    total_paid_actual = total_paid
+    use_custom_installments = st.toggle("Enter custom installment amount for each year (instead of splitting evenly)")
+
+    if use_custom_installments:
+        st.caption(f"Enter the installment for each of the {years_to_sell} year(s):")
+        default_even_split = total_paid / years_to_sell
+        installments = []
+        for year in range(int(years_to_sell)):
+            amount = currency_text_input(
+                f"Year {year} Installment (₹)", f"installment_year_{year}", default_even_split
+            )
+            installments.append(amount)
+        total_paid_actual = sum(installments)
+        st.write(f"**Total Paid (sum of custom installments):** ₹{format_indian(total_paid_actual)}")
+    else:
+        installments = [total_paid / years_to_sell for _ in range(int(years_to_sell))]
+        total_paid_actual = total_paid
 
 # ============================================================
 # RENTAL INCOME — optional, applied every year up to and including sale year
@@ -250,15 +267,27 @@ else:
     rate = 0.0
     appreciated_value = initial_investment
 
-st.write(f"**Appreciated Value at Year {years_to_sell} (before scenario premium):** ₹{format_indian(appreciated_value)}")
+st.write(f"**Appreciated Value at Year {years_to_sell}:** ₹{format_indian(appreciated_value)}")
 
 # ============================================================
-# PREMIUM
+# SALE DETAILS — Premium and the "Sold" toggle
 # ============================================================
-st.subheader("Premium")
-st.caption("A flat ₹ premium on top of what you've paid so far.")
+st.subheader("Sale Details")
 
-selected_premium = currency_text_input("Premium (₹)", "premium", 2000000.0)
+use_sold_toggle = st.toggle(
+    "Sold — use the Appreciated Value above as the actual sale amount (instead of Total Paid)"
+)
+
+if use_sold_toggle:
+    st.caption(
+        f"With Sold on, the sale price used in the calculation is the Appreciated Value "
+        f"at Year {years_to_sell} (₹{format_indian(appreciated_value)}), not just what you've paid so far. "
+        "Use the field below only if you expect to sell for more than that appreciated estimate."
+    )
+    selected_premium = currency_text_input("Additional Premium Over Appreciated Value (₹)", "premium", 0.0)
+else:
+    st.caption("A flat ₹ premium on top of what you've paid so far.")
+    selected_premium = currency_text_input("Premium (₹)", "premium", 2000000.0)
 
 # ============================================================
 # CAPITAL GAINS TAX
@@ -268,7 +297,7 @@ st.caption(
     "Since you're selling an allotment before possession (not a completed property), "
     "the gain is typically taxed as capital gains on transfer of rights — at your "
     "income slab rate if held under 24 months (short-term), or the applicable "
-    "long-term rate if held longer. Applies to your premium and any rental income, "
+    "long-term rate if held longer. Applies to your profit over what you've invested, "
     "not to the return of your own invested capital."
 )
 
@@ -284,25 +313,33 @@ tax_factor = 1 - (tax_rate_pct / 100)
 # ============================================================
 # NET SALE PROCEEDS
 # ============================================================
-# When you sell/assign an under-construction allotment before possession,
-# you receive back what you've already paid the builder, plus your premium.
-# The buyer separately takes over whatever remains owed to the builder.
-net_sale_proceeds = total_paid_actual + selected_premium
-net_sale_proceeds_after_tax = total_paid_actual + (selected_premium * tax_factor)
+# Two sale models:
+#  - Sold OFF (assignment/resale before possession): you get back what you've
+#    paid the builder, plus your premium. The buyer takes over what's owed.
+#  - Sold ON (property sold at appreciated market value): the sale price is
+#    the appreciated value, plus any extra premium above that estimate.
+base_sale_value = appreciated_value if use_sold_toggle else total_paid_actual
+
+net_sale_proceeds = base_sale_value + selected_premium
+
+# The taxable gain is whatever exceeds your own invested capital (capital
+# returned is not taxed); this works the same way for both sale models.
+capital_gain = (base_sale_value - total_paid_actual) + selected_premium
+net_sale_proceeds_after_tax = total_paid_actual + (capital_gain * tax_factor)
 
 # ============================================================
 # CASH FLOW CONSTRUCTION
 # ============================================================
 # Each year: -installment + rent (rent is 0 if toggle is off)
-# Final year additionally nets in the NET sale proceeds (not the raw market value)
+# Final year additionally nets in the NET sale proceeds
 cash_flows = [-installments[i] + annual_rent for i in range(int(years_to_sell) - 1)]
 final_year_cashflow = -installments[-1] + annual_rent + net_sale_proceeds
 cash_flows.append(final_year_cashflow)
 
 irr = calculate_irr(cash_flows)
 
-# Post-tax cash flows: rent is taxed as it's earned each year, and the premium
-# (capital gain) portion of the sale is taxed in the final year. The return
+# Post-tax cash flows: rent is taxed as it's earned each year, and the
+# capital gain portion of the sale is taxed in the final year. The return
 # of your own invested capital is untouched.
 post_tax_cash_flows = [-installments[i] + (annual_rent * tax_factor) for i in range(int(years_to_sell) - 1)]
 post_tax_final_year_cashflow = -installments[-1] + (annual_rent * tax_factor) + net_sale_proceeds_after_tax
@@ -328,10 +365,17 @@ roi_after_tax = (net_profit_after_tax / total_invested) * 100 if total_invested 
 # RESULTS
 # ============================================================
 st.subheader("Results")
-st.write(f"**Appreciated Value (Year {years_to_sell}, before premium):** ₹{format_indian(appreciated_value)}")
+
+if use_sold_toggle:
+    st.write(f"**Appreciated Value (Year {years_to_sell}) — used as Sale Value:** ₹{format_indian(appreciated_value)}")
+    sale_formula_label = "Appreciated Value + Premium"
+else:
+    st.write(f"**Appreciated Value at Year {years_to_sell}:** ₹{format_indian(appreciated_value)}")
+    sale_formula_label = "Total Paid + Premium"
+
 st.write(f"**Total Paid:** ₹{format_indian(total_paid_actual)}")
 st.write(f"**Premium:** ₹{format_indian(selected_premium)}")
-st.write(f"**Net Sale Proceeds (Total Paid + Premium):** ₹{format_indian(net_sale_proceeds)}")
+st.write(f"**Net Sale Proceeds ({sale_formula_label}):** ₹{format_indian(net_sale_proceeds)}")
 if use_rental_income:
     st.write(f"**Annual Rent (included every year):** ₹{format_indian(annual_rent)}")
     st.write(f"**Total Rent Collected (over {years_to_sell} years):** ₹{format_indian(total_rent_collected)}")
@@ -362,7 +406,11 @@ if use_tax:
 
 with st.expander("Cash Flow Breakdown (Year by Year)"):
     for i, cf in enumerate(cash_flows):
-        label = "Installment + Rent" if i < int(years_to_sell) - 1 else "Net Sale Proceeds − Last Installment + Rent"
+        pay_label = "Full Payment" if (use_pay_in_full and i == 0) else "Installment"
+        if i < int(years_to_sell) - 1:
+            label = f"{pay_label} + Rent" if use_rental_income else pay_label
+        else:
+            label = f"Net Sale Proceeds − Last {pay_label} + Rent" if use_rental_income else f"Net Sale Proceeds − Last {pay_label}"
         st.write(f"Year {i}: {label} — ₹{format_indian(cf)}")
 
 # ============================================================
@@ -389,16 +437,6 @@ st.markdown("""
 # ============================================================
 # "WHAT IF YOU INVESTED THE SAME INSTALLMENTS ELSEWHERE?"
 # ============================================================
-# Each installment is treated as a contribution made at that year, which then
-# compounds annually (at the benchmark's CAGR) along with everything invested
-# before it, right up to the year of sale. The final year's installment does
-# not get an extra year of growth, since it's paid right at the point of sale.
-#
-# Example: installments of 20, 10, 30 at a rate r:
-#   Year 1: 20 grows -> 20*(1+r)
-#   Year 2: add 10 -> (20*(1+r) + 10), this then grows -> *(1+r)
-#   Year 3: add 30 -> final value (no further growth, this is the sale year)
-
 st.subheader(f"Your Deal vs. The Alternatives — Final Value After {int(years_to_sell)} Year(s)")
 st.caption(
     "Assumes each installment is invested the year it's paid and compounds "
@@ -488,30 +526,42 @@ st.caption(
     "Rows = premium as a % of your total invested amount. Columns = years until sale. "
     "Each cell assumes your total invested amount is split evenly across that many years "
     "(custom installment amounts are not used here, so the grid stays well-defined for "
-    "any number of years)."
+    "any number of years). "
+    + (
+        "Since Sold is on, the base sale value in each column is the appreciated value "
+        "at that many years, using your appreciation rate above."
+        if use_sold_toggle
+        else "Since Sold is off, the base sale value is simply your total invested amount."
+    )
 )
 
-def sensitivity_irr(total_invested_amt, premium_amt, n, rent_amt):
+def sensitivity_irr(total_invested_amt, premium_amt, n, rent_amt, base_sale_amt):
     if n <= 0 or total_invested_amt <= 0:
         return None
     if n == 1:
         # With a 1-year hold, installment and sale proceeds land in the same
         # period, so there's no discounting to solve for — the annualized
         # return is simply the profit over the amount invested.
-        return (rent_amt + premium_amt) / total_invested_amt
+        return (rent_amt + base_sale_amt + premium_amt - total_invested_amt) / total_invested_amt
     per_year = total_invested_amt / n
     cfs = [-per_year + rent_amt for _ in range(n - 1)]
-    cfs.append(-per_year + rent_amt + (total_invested_amt + premium_amt))
+    cfs.append(-per_year + rent_amt + (base_sale_amt + premium_amt))
     return calculate_irr(cfs)
 
 premium_pct_rows = [10, 20, 30, 40, 50, 75, 100]
 years_cols = list(range(1, max(8, n_years + 3) + 1))
 
+def base_sale_for_year(y):
+    if use_sold_toggle:
+        return initial_investment * (1 + rate) ** y
+    return total_invested
+
 sens_data = np.full((len(premium_pct_rows), len(years_cols)), np.nan)
 for r_idx, pct in enumerate(premium_pct_rows):
     premium_amt = total_invested * (pct / 100)
     for c_idx, y in enumerate(years_cols):
-        irr_val = sensitivity_irr(total_invested, premium_amt, y, annual_rent)
+        base_sale_amt = base_sale_for_year(y)
+        irr_val = sensitivity_irr(total_invested, premium_amt, y, annual_rent, base_sale_amt)
         if irr_val is not None:
             sens_data[r_idx, c_idx] = irr_val * 100
 
@@ -573,21 +623,21 @@ breakeven_benchmark = st.selectbox(
 )
 target_rate = benchmark_rates[breakeven_benchmark] / 100
 
-def required_premium(total_invested_amt, n, rent_amt, target_r):
+def required_premium(total_invested_amt, n, rent_amt, target_r, base_sale_amt):
     if n <= 0:
         return None
     if n == 1:
         # Matches the sensitivity_irr special case: for a 1-year hold,
-        # solve premium directly from (rent + premium) / invested = target_r.
-        return target_r * total_invested_amt - rent_amt
+        # solve premium directly from (rent + base_sale + premium - invested) / invested = target_r.
+        return target_r * total_invested_amt - rent_amt - base_sale_amt + total_invested_amt
     per_year = total_invested_amt / n
     last_year_pre_premium_cf = -per_year + rent_amt
     a_sum = sum((last_year_pre_premium_cf) / (1 + target_r) ** i for i in range(n - 1))
-    premium_needed = -a_sum * (1 + target_r) ** (n - 1) - last_year_pre_premium_cf - total_invested_amt
+    premium_needed = -a_sum * (1 + target_r) ** (n - 1) - last_year_pre_premium_cf - base_sale_amt
     return premium_needed
 
 required_premiums = [
-    required_premium(total_invested, y, annual_rent, target_rate) for y in years_cols
+    required_premium(total_invested, y, annual_rent, target_rate, base_sale_for_year(y)) for y in years_cols
 ]
 
 fig_be, ax_be = make_dark_fig(figsize=(7, 4), grid_axis="y")
