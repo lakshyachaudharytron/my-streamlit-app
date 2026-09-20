@@ -9,18 +9,18 @@ st.set_page_config(page_title="Tron Calculator", layout="centered")
 # ---------- Tron-grid neon theme CSS ----------
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@600;700;800&family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800&family=Orbitron:wght@600;700;800&family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&display=swap');
 
 :root {
-    --cyan: #3DFDFF;
-    --cyan-dim: #1AA8AC;
-    --orange: #FF9F1C;
-    --bg: #030B12;
-    --panel: #061722;
-    --grid: #0C2733;
-    --border: #114654;
-    --text: #CFF7F8;
-    --text-dim: #7FB8BC;
+    --cyan: #E4C158;
+    --cyan-dim: #9C7F2E;
+    --orange: #B98BF2;
+    --bg: #0A0518;
+    --panel: #150B2A;
+    --grid: #241238;
+    --border: #4A2E7A;
+    --text: #EDE1FF;
+    --text-dim: #A98FD1;
 }
 
 html, body, [class*="css"]  {
@@ -31,25 +31,26 @@ html, body, [class*="css"]  {
 .stApp {
     background-color: var(--bg);
     background-image:
-        linear-gradient(rgba(61, 253, 255, 0.05) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(61, 253, 255, 0.05) 1px, transparent 1px);
-    background-size: 34px 34px;
+        radial-gradient(ellipse at top, rgba(74, 46, 122, 0.35), transparent 60%),
+        linear-gradient(rgba(228, 193, 88, 0.06) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(228, 193, 88, 0.06) 1px, transparent 1px);
+    background-size: auto, 34px 34px, 34px 34px;
 }
 
 h1 {
-    font-family: 'Orbitron', sans-serif;
+    font-family: 'Cinzel', serif;
     color: var(--cyan);
     font-weight: 800;
     letter-spacing: 0.06em;
     text-transform: uppercase;
-    text-shadow: 0 0 6px rgba(61, 253, 255, 0.85), 0 0 22px rgba(61, 253, 255, 0.35);
+    text-shadow: 0 0 6px rgba(228, 193, 88, 0.85), 0 0 26px rgba(185, 139, 242, 0.45);
     border-bottom: 2px solid var(--cyan);
-    box-shadow: 0 2px 12px rgba(61, 253, 255, 0.35);
+    box-shadow: 0 2px 14px rgba(228, 193, 88, 0.35);
     padding-bottom: 0.7rem;
     margin-bottom: 1.6rem;
 }
 h3 {
-    font-family: 'Orbitron', sans-serif;
+    font-family: 'Cinzel', serif;
     color: var(--text);
     font-weight: 600;
     letter-spacing: 0.04em;
@@ -62,7 +63,7 @@ h3 {
 [data-testid="stMarkdownContainer"] p strong {
     font-family: 'Share Tech Mono', monospace;
     color: var(--cyan);
-    text-shadow: 0 0 4px rgba(61, 253, 255, 0.5);
+    text-shadow: 0 0 4px rgba(228, 193, 88, 0.5);
 }
 [data-testid="stMetric"] {
     background-color: var(--panel);
@@ -70,13 +71,13 @@ h3 {
     border-left: 4px solid var(--cyan);
     border-radius: 4px;
     padding: 1.1rem 1.35rem;
-    box-shadow: 0 0 14px rgba(61, 253, 255, 0.15), inset 0 0 20px rgba(61, 253, 255, 0.03);
+    box-shadow: 0 0 16px rgba(228, 193, 88, 0.18), inset 0 0 22px rgba(185, 139, 242, 0.05);
 }
 [data-testid="stMetricValue"] {
     font-family: 'Share Tech Mono', monospace;
     color: var(--cyan);
     font-weight: 600;
-    text-shadow: 0 0 6px rgba(61, 253, 255, 0.6);
+    text-shadow: 0 0 6px rgba(228, 193, 88, 0.6);
 }
 [data-testid="stMetricLabel"] {
     color: var(--text-dim);
@@ -88,14 +89,14 @@ h3 {
     border: 1px solid var(--border);
     border-radius: 4px;
     background-color: var(--panel);
-    box-shadow: 0 0 10px rgba(61, 253, 255, 0.08);
+    box-shadow: 0 0 10px rgba(228, 193, 88, 0.1);
 }
 [data-testid="stCaptionContainer"] {
     color: var(--text-dim);
     font-style: italic;
 }
 [data-testid="stSlider"] [role="slider"] {
-    box-shadow: 0 0 8px rgba(61, 253, 255, 0.8);
+    box-shadow: 0 0 8px rgba(228, 193, 88, 0.85);
 }
 .stTextInput input, .stNumberInput input {
     background-color: var(--panel) !important;
@@ -110,12 +111,12 @@ table {
     border-collapse: collapse;
     width: 100%;
     margin: 0.5rem 0 1rem 0;
-    box-shadow: 0 0 12px rgba(61, 253, 255, 0.1);
+    box-shadow: 0 0 12px rgba(228, 193, 88, 0.12);
 }
 table thead th {
     background-color: var(--panel);
     color: var(--cyan);
-    font-family: 'Orbitron', sans-serif;
+    font-family: 'Cinzel', serif;
     font-weight: 600;
     text-transform: uppercase;
     font-size: 0.82rem;
@@ -203,23 +204,23 @@ def currency_text_input(label, key, default_value):
     st.text_input(label, key=key, on_change=_reformat)
     return parse_indian(st.session_state[key])
 
-# ---------- Matplotlib styling to match the app's Tron-grid theme ----------
-CYAN = "#3DFDFF"
-ORANGE = "#FF9F1C"
-EMERALD = "#3DFDFF"
-TEAL = "#5CE1E6"
-ROSE = "#FF5C5C"
-STEEL = "#4E7A85"
-PLUM = "#FF9F1C"
-GOLD = "#3DFDFF"
-TEXT_LIGHT = "#CFF7F8"
-TITLE_LIGHT = "#E8FFFF"
-GRID_LINE = "#0C2733"
-BG_DARK = "#030B12"
-PANEL_DARK = "#061722"
-BORDER = "#114654"
+# ---------- Matplotlib styling to match the app's royal Tron-grid theme ----------
+CYAN = "#E4C158"      # royal gold — primary accent
+ORANGE = "#B98BF2"    # royal violet — secondary accent
+EMERALD = "#E4C158"
+TEAL = "#D8AE3E"
+ROSE = "#E0567C"
+STEEL = "#6A5590"
+PLUM = "#B98BF2"
+GOLD = "#E4C158"
+TEXT_LIGHT = "#EDE1FF"
+TITLE_LIGHT = "#F6ECC8"
+GRID_LINE = "#241238"
+BG_DARK = "#0A0518"
+PANEL_DARK = "#150B2A"
+BORDER = "#4A2E7A"
 
-plt.rcParams["font.family"] = "monospace"
+plt.rcParams["font.family"] = "serif"
 
 def make_dark_fig(figsize=(7, 4), grid_axis="x"):
     fig, ax = plt.subplots(figsize=figsize)
@@ -227,7 +228,7 @@ def make_dark_fig(figsize=(7, 4), grid_axis="x"):
     ax.set_facecolor(PANEL_DARK)
     ax.tick_params(colors=TEXT_LIGHT, labelsize=9)
     for spine in ("bottom", "left"):
-        ax.spines[spine].set_color(CYAN)
+        ax.spines[spine].set_color(BORDER)
         ax.spines[spine].set_linewidth(0.8)
     for spine in ("top", "right"):
         ax.spines[spine].set_visible(False)
@@ -544,7 +545,7 @@ compare_colors = [ORANGE] + [STEEL] * len(benchmark_rates)
 if use_tax:
     compare_names.append("Your Real Estate Deal (Post-Tax)")
     compare_values.append(net_sale_proceeds_after_tax)
-    compare_colors.append(CYAN)
+    compare_colors.append(ORANGE)
 
 sorted_rows = sorted(zip(compare_names, compare_values, compare_colors), key=lambda r: r[1])
 sorted_names, sorted_values, sorted_colors = zip(*sorted_rows)
@@ -552,7 +553,7 @@ sorted_names, sorted_values, sorted_colors = zip(*sorted_rows)
 fig_cmp, ax_cmp = make_dark_fig(figsize=(7, 5), grid_axis="x")
 ax_cmp.barh(sorted_names, [v / 1e7 for v in sorted_values], color=sorted_colors, height=0.6)
 ax_cmp.set_xlabel("Final Value (₹ Cr)")
-title_suffix = " (orange = pre-tax, cyan = post-tax)" if use_tax else " (orange = your deal)"
+title_suffix = " (gold = pre-tax, violet = post-tax)" if use_tax else " (gold = your deal)"
 ax_cmp.set_title(f"Final Value Comparison{title_suffix}", fontsize=12, pad=10)
 ax_cmp.xaxis.set_major_formatter(FuncFormatter(lambda x, _: f"{x:.2f}"))
 st.pyplot(fig_cmp)
