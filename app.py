@@ -4,90 +4,141 @@ from matplotlib.ticker import FuncFormatter
 from matplotlib.colors import LinearSegmentedColormap, TwoSlopeNorm
 import numpy as np
 
-st.set_page_config(page_title="Real Estate IRR Calculator", layout="centered")
+st.set_page_config(page_title="Tron Calculator", layout="centered")
 
-# ---------- Classy theme CSS ----------
+# ---------- Tron-grid neon theme CSS ----------
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Source+Sans+3:wght@400;500;600&family=JetBrains+Mono:wght@500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@600;700;800&family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&display=swap');
+
+:root {
+    --cyan: #3DFDFF;
+    --cyan-dim: #1AA8AC;
+    --orange: #FF9F1C;
+    --bg: #030B12;
+    --panel: #061722;
+    --grid: #0C2733;
+    --border: #114654;
+    --text: #CFF7F8;
+    --text-dim: #7FB8BC;
+}
 
 html, body, [class*="css"]  {
-    font-family: 'Source Sans 3', sans-serif;
+    font-family: 'Rajdhani', sans-serif;
+    color: var(--text);
 }
+
 .stApp {
-    background-color: #0B0F14;
+    background-color: var(--bg);
+    background-image:
+        linear-gradient(rgba(61, 253, 255, 0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(61, 253, 255, 0.05) 1px, transparent 1px);
+    background-size: 34px 34px;
 }
+
 h1 {
-    font-family: 'Playfair Display', serif;
-    color: #D8B36A;
-    font-weight: 700;
-    letter-spacing: -0.01em;
-    border-bottom: 2px solid #2A3240;
+    font-family: 'Orbitron', sans-serif;
+    color: var(--cyan);
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    text-shadow: 0 0 6px rgba(61, 253, 255, 0.85), 0 0 22px rgba(61, 253, 255, 0.35);
+    border-bottom: 2px solid var(--cyan);
+    box-shadow: 0 2px 12px rgba(61, 253, 255, 0.35);
     padding-bottom: 0.7rem;
     margin-bottom: 1.6rem;
 }
 h3 {
-    font-family: 'Playfair Display', serif;
-    color: #EDEBE5;
+    font-family: 'Orbitron', sans-serif;
+    color: var(--text);
     font-weight: 600;
-    letter-spacing: 0.01em;
-    margin-top: 2.2rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    font-size: 1.05rem;
+    margin-top: 2.4rem;
+    border-left: 3px solid var(--orange);
+    padding-left: 0.6rem;
 }
 [data-testid="stMarkdownContainer"] p strong {
-    font-family: 'JetBrains Mono', monospace;
-    color: #D8B36A;
+    font-family: 'Share Tech Mono', monospace;
+    color: var(--cyan);
+    text-shadow: 0 0 4px rgba(61, 253, 255, 0.5);
 }
 [data-testid="stMetric"] {
-    background-color: #151A22;
-    border: 1px solid #2A3240;
-    border-left: 4px solid #D8B36A;
-    border-radius: 8px;
+    background-color: var(--panel);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--cyan);
+    border-radius: 4px;
     padding: 1.1rem 1.35rem;
-    box-shadow: 0 3px 12px rgba(0,0,0,0.3);
+    box-shadow: 0 0 14px rgba(61, 253, 255, 0.15), inset 0 0 20px rgba(61, 253, 255, 0.03);
 }
 [data-testid="stMetricValue"] {
-    font-family: 'JetBrains Mono', monospace;
-    color: #D8B36A;
+    font-family: 'Share Tech Mono', monospace;
+    color: var(--cyan);
     font-weight: 600;
+    text-shadow: 0 0 6px rgba(61, 253, 255, 0.6);
 }
 [data-testid="stMetricLabel"] {
-    color: #A9B1BC;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-size: 0.78rem;
 }
 [data-testid="stExpander"] {
-    border: 1px solid #2A3240;
-    border-radius: 8px;
-    background-color: #10141B;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background-color: var(--panel);
+    box-shadow: 0 0 10px rgba(61, 253, 255, 0.08);
 }
 [data-testid="stCaptionContainer"] {
-    color: #8D97A3;
+    color: var(--text-dim);
     font-style: italic;
+}
+[data-testid="stSlider"] [role="slider"] {
+    box-shadow: 0 0 8px rgba(61, 253, 255, 0.8);
+}
+.stTextInput input, .stNumberInput input {
+    background-color: var(--panel) !important;
+    color: var(--cyan) !important;
+    border: 1px solid var(--border) !important;
+    font-family: 'Share Tech Mono', monospace;
+}
+button[role="switch"][aria-checked="true"] {
+    background-color: var(--orange) !important;
 }
 table {
     border-collapse: collapse;
     width: 100%;
     margin: 0.5rem 0 1rem 0;
+    box-shadow: 0 0 12px rgba(61, 253, 255, 0.1);
 }
 table thead th {
-    background-color: #151A22;
-    color: #D8B36A;
-    font-family: 'Playfair Display', serif;
+    background-color: var(--panel);
+    color: var(--cyan);
+    font-family: 'Orbitron', sans-serif;
     font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.82rem;
+    letter-spacing: 0.03em;
     text-align: left;
     padding: 0.65rem 0.9rem;
-    border-bottom: 2px solid #D8B36A;
+    border-bottom: 2px solid var(--cyan);
 }
 table tbody td {
     padding: 0.6rem 0.9rem;
-    border-bottom: 1px solid #232A34;
-    color: #E5E3DD;
+    border-bottom: 1px solid var(--grid);
+    color: var(--text);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.88rem;
 }
 table tbody tr:nth-child(even) {
-    background-color: #10141B;
+    background-color: var(--panel);
 }
 </style>
 """, unsafe_allow_html=True)
 
-st.title("Under-Construction Real Estate — IRR Calculator")
+st.title("Tron Calculator")
+st.caption("Under-Construction Real Estate — IRR Calculator")
 
 # ---------- IRR helper (pure Python, no extra dependencies) ----------
 def npv(rate, cash_flows):
@@ -152,21 +203,23 @@ def currency_text_input(label, key, default_value):
     st.text_input(label, key=key, on_change=_reformat)
     return parse_indian(st.session_state[key])
 
-# ---------- Matplotlib styling to match the app's dark/gold theme ----------
-GOLD = "#D8B36A"
-EMERALD = "#3FA66B"
-TEAL = "#4C9A8E"
-ROSE = "#C0596B"
-STEEL = "#5C7A99"
-PLUM = "#B980F0"
-TEXT_LIGHT = "#C7CDD6"
-TITLE_LIGHT = "#EDEBE5"
-GRID_LINE = "#232A34"
-BG_DARK = "#0B0F14"
-PANEL_DARK = "#10141B"
-BORDER = "#2A3240"
+# ---------- Matplotlib styling to match the app's Tron-grid theme ----------
+CYAN = "#3DFDFF"
+ORANGE = "#FF9F1C"
+EMERALD = "#3DFDFF"
+TEAL = "#5CE1E6"
+ROSE = "#FF5C5C"
+STEEL = "#4E7A85"
+PLUM = "#FF9F1C"
+GOLD = "#3DFDFF"
+TEXT_LIGHT = "#CFF7F8"
+TITLE_LIGHT = "#E8FFFF"
+GRID_LINE = "#0C2733"
+BG_DARK = "#030B12"
+PANEL_DARK = "#061722"
+BORDER = "#114654"
 
-plt.rcParams["font.family"] = "serif"
+plt.rcParams["font.family"] = "monospace"
 
 def make_dark_fig(figsize=(7, 4), grid_axis="x"):
     fig, ax = plt.subplots(figsize=figsize)
@@ -174,13 +227,14 @@ def make_dark_fig(figsize=(7, 4), grid_axis="x"):
     ax.set_facecolor(PANEL_DARK)
     ax.tick_params(colors=TEXT_LIGHT, labelsize=9)
     for spine in ("bottom", "left"):
-        ax.spines[spine].set_color(BORDER)
+        ax.spines[spine].set_color(CYAN)
+        ax.spines[spine].set_linewidth(0.8)
     for spine in ("top", "right"):
         ax.spines[spine].set_visible(False)
     ax.title.set_color(TITLE_LIGHT)
     ax.xaxis.label.set_color(TEXT_LIGHT)
     ax.yaxis.label.set_color(TEXT_LIGHT)
-    ax.grid(axis=grid_axis, color=GRID_LINE, linewidth=0.6, alpha=0.7)
+    ax.grid(axis=grid_axis, color=GRID_LINE, linewidth=0.6, alpha=0.9)
     return fig, ax
 
 # ============================================================
@@ -485,12 +539,12 @@ compare_names = ["Your Real Estate Deal"] + list(benchmark_rates.keys())
 compare_values = [net_sale_proceeds] + [
     compounded_value(installments, pct, n_years) for pct in benchmark_rates.values()
 ]
-compare_colors = [GOLD] + [STEEL] * len(benchmark_rates)
+compare_colors = [ORANGE] + [STEEL] * len(benchmark_rates)
 
 if use_tax:
     compare_names.append("Your Real Estate Deal (Post-Tax)")
     compare_values.append(net_sale_proceeds_after_tax)
-    compare_colors.append(PLUM)
+    compare_colors.append(CYAN)
 
 sorted_rows = sorted(zip(compare_names, compare_values, compare_colors), key=lambda r: r[1])
 sorted_names, sorted_values, sorted_colors = zip(*sorted_rows)
@@ -498,7 +552,7 @@ sorted_names, sorted_values, sorted_colors = zip(*sorted_rows)
 fig_cmp, ax_cmp = make_dark_fig(figsize=(7, 5), grid_axis="x")
 ax_cmp.barh(sorted_names, [v / 1e7 for v in sorted_values], color=sorted_colors, height=0.6)
 ax_cmp.set_xlabel("Final Value (₹ Cr)")
-title_suffix = " (gold = pre-tax, plum = post-tax)" if use_tax else " (gold = your deal)"
+title_suffix = " (orange = pre-tax, cyan = post-tax)" if use_tax else " (orange = your deal)"
 ax_cmp.set_title(f"Final Value Comparison{title_suffix}", fontsize=12, pad=10)
 ax_cmp.xaxis.set_major_formatter(FuncFormatter(lambda x, _: f"{x:.2f}"))
 st.pyplot(fig_cmp)
@@ -565,12 +619,12 @@ for r_idx, pct in enumerate(premium_pct_rows):
         if irr_val is not None:
             sens_data[r_idx, c_idx] = irr_val * 100
 
-sens_cmap = LinearSegmentedColormap.from_list("sens_cmap", [ROSE, PANEL_DARK, EMERALD])
+sens_cmap = LinearSegmentedColormap.from_list("sens_cmap", [ROSE, PANEL_DARK, CYAN])
 
 # Anchor the color scale so 10% IRR is the crossover point: anything below
-# 10% leans red, anything above gradually leans greener as it climbs toward
+# 10% leans red, anything above gradually leans cyan/green as it climbs toward
 # the highest value actually in the grid (rather than requiring 100%+ to
-# register as green).
+# register as bright).
 valid_vals = sens_data[~np.isnan(sens_data)]
 data_min = float(valid_vals.min()) if valid_vals.size else 0.0
 data_max = float(valid_vals.max()) if valid_vals.size else 20.0
@@ -641,18 +695,18 @@ required_premiums = [
 ]
 
 fig_be, ax_be = make_dark_fig(figsize=(7, 4), grid_axis="y")
-ax_be.plot(years_cols, [p / 1e7 for p in required_premiums], color=PLUM, marker="o",
+ax_be.plot(years_cols, [p / 1e7 for p in required_premiums], color=ORANGE, marker="o",
            linewidth=2, markersize=5, label=f"Break-even vs {breakeven_benchmark}")
 
 # Your actual premium as a flat reference line — moves up/down as you change
 # the Premium input, so it's easy to see where it crosses the break-even curve
-ax_be.axhline(selected_premium / 1e7, color=TEAL, linestyle="--", linewidth=1.6,
+ax_be.axhline(selected_premium / 1e7, color=CYAN, linestyle="--", linewidth=1.6,
               label="Your Premium (flat)")
 
 # Highlight the user's actual premium at their chosen years_to_sell
 if n_years in years_cols:
     be_at_selected = required_premiums[years_cols.index(n_years)]
-    user_color = TEAL if selected_premium >= be_at_selected else ROSE
+    user_color = CYAN if selected_premium >= be_at_selected else ROSE
     ax_be.scatter([n_years], [selected_premium / 1e7], color=user_color, s=100, zorder=5,
                   edgecolor=BG_DARK, linewidth=1.5, label="Your Premium & Years")
 
@@ -688,9 +742,9 @@ if use_appreciation_rate:
         vals_range = [initial_investment * (1 + rate) ** y for y in yrs_range]
 
         fig_app, ax_app = make_dark_fig(figsize=(7, 3.8), grid_axis="y")
-        ax_app.plot(yrs_range, [v / 1e7 for v in vals_range], color=GOLD, marker="o",
-                    linewidth=2, markersize=5, markerfacecolor=GOLD, markeredgecolor=BG_DARK)
-        ax_app.fill_between(yrs_range, [v / 1e7 for v in vals_range], color=GOLD, alpha=0.08)
+        ax_app.plot(yrs_range, [v / 1e7 for v in vals_range], color=CYAN, marker="o",
+                    linewidth=2, markersize=5, markerfacecolor=CYAN, markeredgecolor=BG_DARK)
+        ax_app.fill_between(yrs_range, [v / 1e7 for v in vals_range], color=CYAN, alpha=0.10)
         ax_app.set_xlabel("Year")
         ax_app.set_ylabel("Property Value (₹ Cr)")
         ax_app.set_xticks(yrs_range)
